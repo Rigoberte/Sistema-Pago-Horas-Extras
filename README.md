@@ -9,6 +9,22 @@ Esta aplicacion toma registros de ingreso y egreso de personal, los cruza con lo
 
 El objetivo es estandarizar el calculo de horas para facilitar liquidaciones y controles.
 
+## Interfaz grafica
+
+La aplicacion se ejecuta con una interfaz que permite completar el workflow:
+
+1. Seleccionar un Excel exportado desde Qontact.
+2. Ver una previsualizacion del calculo en una tabla.
+3. Editar valores habilitados antes de guardar.
+4. Cargar el lote de forma temporal en el historico (estado `NO_CONFIRMADO`).
+5. Confirmar el lote cargado (estado `CONFIRMADO`).
+
+Para iniciar la interfaz:
+
+```bash
+python src/main.py
+```
+
 ## Como funciona
 
 La aplicacion se utiliza con el siguiente flujo de trabajo:

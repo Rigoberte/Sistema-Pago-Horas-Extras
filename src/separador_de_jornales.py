@@ -6,13 +6,15 @@ from src.datos_empleados_reader import DatosEmpleados
 from src.feriados import FeriadosReader
 
 class SeparadorDeJornales:
-    def __init__(self):
-        self.reporte_horas_extras_df: pd.DataFrame = ReporteHorasExtras().read()
+    def __init__(self, reporte_horas_extras_df: pd.DataFrame | None = None):
+        self.reporte_horas_extras_df: pd.DataFrame = reporte_horas_extras_df if reporte_horas_extras_df is not None else ReporteHorasExtras().read()
         self.datos_empleados_df: pd.DataFrame = DatosEmpleados().read()
         self.feriados_reader: FeriadosReader = FeriadosReader()
 
-    def split_jornales(self):
-        reporte_horas_extras_df = self.reporte_horas_extras_df.merge(
+    def build_result_df(self, reporte_horas_extras_df: pd.DataFrame | None = None) -> pd.DataFrame:
+        reporte_base = reporte_horas_extras_df if reporte_horas_extras_df is not None else self.reporte_horas_extras_df
+
+        reporte_horas_extras_df = reporte_base.merge(
             self.datos_empleados_df,
             on="NOMBRE_Y_APELLIDO",
             how="left"
@@ -35,6 +37,10 @@ class SeparadorDeJornales:
         ]
 
         reporte_horas_extras_df = pd.concat([reporte_horas_extras_df, resultados], axis=1)
+        return reporte_horas_extras_df
+
+    def split_jornales(self):
+        reporte_horas_extras_df = self.build_result_df()
     
         print(reporte_horas_extras_df[[
             "NOMBRE_Y_APELLIDO",
@@ -52,7 +58,7 @@ class SeparadorDeJornales:
         return t >= datetime.time(21, 0) or t < datetime.time(6, 0)
     
     def is_holiday_or_weekend(self, dt: pd.Timestamp) -> bool:
-        return dt.weekday() >= 5 or self.feriados_reader.is_feriado(dt)
+        return dt.weekday() >= 5 or self.feriados_reader.is_holiday(dt)
 
 
     def next_boundary(self, dt: pd.Timestamp) -> pd.Timestamp:

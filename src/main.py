@@ -1,9 +1,9 @@
-from src.separador_de_jornales import SeparadorDeJornales
+from src.gui_app import HorasExtrasGUI
 
 
 def main():
-    separador = SeparadorDeJornales()
-    separador.split_jornales()
+    app = HorasExtrasGUI()
+    app.run()
 
 if __name__ == "__main__":
     main()
