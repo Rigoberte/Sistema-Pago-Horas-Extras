@@ -30,6 +30,10 @@ class HorasExtrasGUI:
         self.root.geometry("1450x820")
         self.root.minsize(1200, 720)
         self.root.configure(bg="#eef2f7")
+        try:
+            self.root.state("zoomed")
+        except tk.TclError:
+            self.root.attributes("-zoomed", True)
 
         self.workflow = HorasExtrasWorkflowService()
         self.datos_empleados = DatosEmpleados()
@@ -42,6 +46,7 @@ class HorasExtrasGUI:
         self.selected_feriado_fecha = None
 
         self.current_view = "validacion"
+        self.path_var = tk.StringVar(value="Sin archivo seleccionado")
 
         self._configure_style()
         self._build_layout()
@@ -144,6 +149,19 @@ class HorasExtrasGUI:
         )
 
         style.configure(
+            "FilterApply.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(9, 8),
+            background="#2f80ed",
+            foreground="white",
+            borderwidth=0
+        )
+        style.map(
+            "FilterApply.TButton",
+            background=[("active", "#2467c8")]
+        )
+
+        style.configure(
             "Success.TButton",
             font=("Segoe UI", 11, "bold"),
             padding=(14, 10),
@@ -170,6 +188,73 @@ class HorasExtrasGUI:
         )
 
         style.configure(
+            "SmallPrimary.TButton",
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 7),
+            background="#2f80ed",
+            foreground="white",
+            borderwidth=0
+        )
+        style.map(
+            "SmallPrimary.TButton",
+            background=[("active", "#2467c8")]
+        )
+
+        style.configure(
+            "SmallSuccess.TButton",
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 7),
+            background="#2e9b50",
+            foreground="white",
+            borderwidth=0
+        )
+        style.map(
+            "SmallSuccess.TButton",
+            background=[("active", "#257e41")]
+        )
+
+        style.configure(
+            "SmallDanger.TButton",
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 7),
+            background="#c0392b",
+            foreground="white",
+            borderwidth=0
+        )
+        style.map(
+            "SmallDanger.TButton",
+            background=[("active", "#a93226")]
+        )
+
+        style.configure(
+            "SmallSecondary.TButton",
+            font=("Segoe UI", 10),
+            padding=(10, 7),
+            background="#e7edf4",
+            foreground="#344054",
+            borderwidth=1
+        )
+        style.map(
+            "SmallSecondary.TButton",
+            background=[("active", "#dbe4ee")]
+        )
+
+        style.configure(
+            "SmallClean.TButton",
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 7),
+            background="#dde3ea",
+            foreground="#2a313d",
+            borderwidth=0,
+            relief="flat"
+        )
+        style.map(
+            "SmallClean.TButton",
+            background=[("active", "#cfd7e0"), ("pressed", "#c7d0db")],
+            foreground=[("active", "#1f2732")]
+        )
+
+        style.configure(
             "Secondary.TButton",
             font=("Segoe UI", 10),
             padding=(10, 8),
@@ -183,9 +268,24 @@ class HorasExtrasGUI:
         )
 
         style.configure(
+            "Clean.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(14, 10),
+            background="#dde3ea",
+            foreground="#2a313d",
+            borderwidth=0,
+            relief="flat"
+        )
+        style.map(
+            "Clean.TButton",
+            background=[("active", "#cfd7e0"), ("pressed", "#c7d0db")],
+            foreground=[("active", "#1f2732")]
+        )
+
+        style.configure(
             "CalendarIcon.TButton",
-            font=("Segoe UI Emoji", 9),
-            padding=(3, 1),
+            font=("Segoe UI Emoji", 8),
+            padding=(1, 1),
             background="#e7edf4",
             foreground="#344054",
             borderwidth=1,
@@ -332,24 +432,25 @@ class HorasExtrasGUI:
         self.emp_valor_hs_extras_var = tk.StringVar()
 
         ttk.Label(form, text="Nombre", style="SectionLabel.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
-        ttk.Entry(form, textvariable=self.emp_nombre_var, width=36).grid(row=0, column=1, sticky="w", pady=4)
+        ttk.Entry(form, textvariable=self.emp_nombre_var, width=22).grid(row=0, column=1, sticky="w", pady=4)
 
         ttk.Label(form, text="Valor hs jornal", style="SectionLabel.TLabel").grid(row=0, column=2, sticky="w", padx=(18, 8), pady=4)
-        ttk.Entry(form, textvariable=self.emp_valor_hs_jornal_var, width=16).grid(row=0, column=3, sticky="w", pady=4)
+        ttk.Entry(form, textvariable=self.emp_valor_hs_jornal_var, width=22).grid(row=0, column=3, sticky="w", pady=4)
 
         ttk.Label(form, text="Hs jornal", style="SectionLabel.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
-        ttk.Entry(form, textvariable=self.emp_hs_jornal_var, width=16).grid(row=1, column=1, sticky="w", pady=4)
+        ttk.Entry(form, textvariable=self.emp_hs_jornal_var, width=22).grid(row=1, column=1, sticky="w", pady=4)
 
         ttk.Label(form, text="Valor hs extras", style="SectionLabel.TLabel").grid(row=1, column=2, sticky="w", padx=(18, 8), pady=4)
-        ttk.Entry(form, textvariable=self.emp_valor_hs_extras_var, width=16).grid(row=1, column=3, sticky="w", pady=4)
+        ttk.Entry(form, textvariable=self.emp_valor_hs_extras_var, width=22).grid(row=1, column=3, sticky="w", pady=4)
 
         actions = ttk.Frame(form, style="Card.TFrame")
-        actions.grid(row=0, column=4, rowspan=2, padx=(26, 0), sticky="e")
+        actions.grid(row=0, column=4, rowspan=2, padx=(20, 0), sticky="e")
+        form.columnconfigure(4, weight=1)
 
-        ttk.Button(actions, text="Agregar", style="Primary.TButton", command=self.add_empleado).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Actualizar", style="Success.TButton", command=self.update_empleado).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Eliminar", style="Danger.TButton", command=self.remove_empleado).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Limpiar", style="Secondary.TButton", command=self.clear_empleado_form).pack(side="left")
+        ttk.Button(actions, text="Agregar", style="SmallPrimary.TButton", command=self.add_empleado).grid(row=0, column=0, padx=(0, 8), pady=(0, 8), sticky="ew")
+        ttk.Button(actions, text="Eliminar", style="SmallDanger.TButton", command=self.remove_empleado).grid(row=0, column=1, pady=(0, 8), sticky="ew")
+        ttk.Button(actions, text="Actualizar", style="SmallSuccess.TButton", command=self.update_empleado).grid(row=1, column=0, padx=(0, 8), sticky="ew")
+        ttk.Button(actions, text="Limpiar", style="SmallClean.TButton", command=self.clear_empleado_form).grid(row=1, column=1, sticky="ew")
 
         columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL", "VALOR_HS_EXTRAS")
         self.empleados_tree = ttk.Treeview(card, columns=columns, show="headings", height=12)
@@ -399,15 +500,16 @@ class HorasExtrasGUI:
 
         ttk.Label(form, text="Descripción:", style="SectionLabel.TLabel").grid(row=0, column=2, sticky="w", padx=(20, 8), pady=4)
         self.feriado_desc_var = tk.StringVar()
-        ttk.Entry(form, textvariable=self.feriado_desc_var, width=35).grid(row=0, column=3, sticky="w", pady=4)
+        ttk.Entry(form, textvariable=self.feriado_desc_var, width=35).grid(row=0, column=3, sticky="ew", pady=4)
 
         actions = ttk.Frame(form, style="Card.TFrame")
-        actions.grid(row=0, column=4, padx=(20, 0), pady=4, sticky="w")
+        actions.grid(row=0, column=4, padx=(16, 0), pady=4, sticky="e")
+        form.columnconfigure(3, weight=1)
 
-        ttk.Button(actions, text="Agregar", style="Primary.TButton", command=self.add_feriado).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Actualizar", style="Success.TButton", command=self.update_feriado).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Eliminar", style="Danger.TButton", command=self.remove_feriado).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Limpiar", style="Secondary.TButton", command=self.clear_feriado_form).pack(side="left")
+        ttk.Button(actions, text="Agregar", style="SmallPrimary.TButton", command=self.add_feriado).grid(row=0, column=0, padx=(0, 8), pady=(0, 8), sticky="ew")
+        ttk.Button(actions, text="Eliminar", style="SmallDanger.TButton", command=self.remove_feriado).grid(row=0, column=1, pady=(0, 8), sticky="ew")
+        ttk.Button(actions, text="Actualizar", style="SmallSuccess.TButton", command=self.update_feriado).grid(row=1, column=0, padx=(0, 8), sticky="ew")
+        ttk.Button(actions, text="Limpiar", style="SmallClean.TButton", command=self.clear_feriado_form).grid(row=1, column=1, sticky="ew")
 
         self.feriados_table = ttk.Treeview(card, columns=("FECHA_FERIADO", "DESCRIPCION_FERIADO"), show="headings", height=10)
         self.feriados_table.pack(fill="x", pady=(16, 0))
@@ -650,18 +752,15 @@ class HorasExtrasGUI:
     def _build_validacion_view(self):
         parent = self.views["validacion"]
 
-        self._build_upload_card(parent)
         self._build_filters_card(parent)
-        self._build_detail_card(parent)
         self._build_bottom_actions(parent)
+        self._build_detail_card(parent)
 
     def _build_upload_card(self, parent):
         _, card = self._create_card(parent, "Carga de reporte Qontact")
 
         row = ttk.Frame(card, style="Card.TFrame")
         row.pack(fill="x")
-
-        self.path_var = tk.StringVar(value="Sin archivo seleccionado")
 
         ttk.Button(
             row,
@@ -695,11 +794,11 @@ class HorasExtrasGUI:
         )
         self.row_status_combo.grid(row=0, column=1, sticky="w", pady=4)
 
-        ttk.Label(card, text="Nombre", style="SectionLabel.TLabel").grid(row=0, column=2, sticky="w", padx=(18, 8), pady=4)
-        self.nombre_entry = ttk.Entry(card, textvariable=self.nombre_var, width=26)
+        ttk.Label(card, text="Nombre", style="SectionLabel.TLabel").grid(row=0, column=2, sticky="w", padx=(12, 8), pady=4)
+        self.nombre_entry = ttk.Entry(card, textvariable=self.nombre_var, width=18)
         self.nombre_entry.grid(row=0, column=3, sticky="w", pady=4)
 
-        ttk.Label(card, text="Desde", style="SectionLabel.TLabel").grid(row=0, column=4, sticky="w", padx=(18, 8), pady=4)
+        ttk.Label(card, text="Desde", style="SectionLabel.TLabel").grid(row=0, column=4, sticky="w", padx=(12, 8), pady=4)
         desde_frame = ttk.Frame(card, style="Card.TFrame")
         desde_frame.grid(row=0, column=5, sticky="w", pady=4)
         self.fecha_desde_entry = ttk.Entry(desde_frame, textvariable=self.fecha_desde_var, width=15, state="readonly")
@@ -711,7 +810,7 @@ class HorasExtrasGUI:
             command=lambda: self._open_date_picker(self.fecha_desde_var),
         ).pack(side="left", padx=(6, 0))
 
-        ttk.Label(card, text="Hasta", style="SectionLabel.TLabel").grid(row=0, column=6, sticky="w", padx=(18, 8), pady=4)
+        ttk.Label(card, text="Hasta", style="SectionLabel.TLabel").grid(row=0, column=6, sticky="w", padx=(12, 8), pady=4)
         hasta_frame = ttk.Frame(card, style="Card.TFrame")
         hasta_frame.grid(row=0, column=7, sticky="w", pady=4)
         self.fecha_hasta_entry = ttk.Entry(hasta_frame, textvariable=self.fecha_hasta_var, width=15, state="readonly")
@@ -724,11 +823,11 @@ class HorasExtrasGUI:
         ).pack(side="left", padx=(6, 0))
 
         actions = ttk.Frame(card, style="Card.TFrame")
-        actions.grid(row=0, column=9, padx=(20, 0), sticky="e")
+        actions.grid(row=0, column=8, padx=(12, 0), sticky="e")
         card.columnconfigure(8, weight=1)
 
-        ttk.Button(actions, text="Aplicar filtros", style="Primary.TButton", command=self.apply_filters).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="Limpiar", style="Secondary.TButton", command=self.clear_filters).pack(side="left")
+        ttk.Button(actions, text="Aplicar", style="FilterApply.TButton", width=7, command=self.apply_filters).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="Limpiar", style="Clean.TButton", command=self.clear_filters).pack(side="left")
 
     def _build_validation_message(self, parent):
         self.validation_card, self.validation_inner = self._create_card(parent, "Validación")
@@ -755,10 +854,12 @@ class HorasExtrasGUI:
 
         detail_container = ttk.Frame(detail_inner, style="Card.TFrame")
         detail_container.pack(fill="both", expand=True)
+        detail_container.columnconfigure(0, weight=1)
+        detail_container.rowconfigure(0, weight=1)
 
         tree_columns = [self.SELECTION_COLUMN] + self.DISPLAY_COLUMNS
         self.tree = ttk.Treeview(detail_container, columns=tree_columns, show="headings", height=18)
-        self.tree.pack(side="left", fill="both", expand=True)
+        self.tree.grid(row=0, column=0, sticky="nsew")
 
         for col in tree_columns:
             self.tree.heading(col, text=col)
@@ -769,35 +870,53 @@ class HorasExtrasGUI:
                 width = 220
             elif col in {"NOMBRE_Y_APELLIDO", "NOMBRE Y APELLIDO"}:
                 width = 220
-            self.tree.column(col, width=width, anchor="w")
+            self.tree.column(col, width=width, anchor="w", stretch=False)
 
-        scrollbar = ttk.Scrollbar(detail_container, orient="vertical", command=self.tree.yview)
-        scrollbar.pack(side="right", fill="y")
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        # Scrollbar vertical
+        v_scrollbar = ttk.Scrollbar(detail_container, orient="vertical", command=self.tree.yview)
+        v_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.tree.configure(yscrollcommand=v_scrollbar.set)
+
+        # Scrollbar horizontal
+        h_scrollbar = ttk.Scrollbar(detail_container, orient="horizontal", command=self.tree.xview)
+        h_scrollbar.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+        self.tree.configure(xscrollcommand=h_scrollbar.set)
 
         self.tree.bind("<Button-1>", self.on_single_click)
         self.tree.bind("<Double-1>", self.on_cell_double_click)
 
     def _build_bottom_actions(self, parent):
         actions = ttk.Frame(parent, style="Content.TFrame")
-        actions.pack(fill="x", pady=(0, 8))
+        actions.pack(side="bottom", fill="x", pady=(8, 0))
+
+        ttk.Separator(actions, orient="horizontal").pack(fill="x", pady=(0, 8))
+
+        row = ttk.Frame(actions, style="Content.TFrame")
+        row.pack(fill="x")
 
         ttk.Button(
-            actions,
-            text="Descartar",
+            row,
+            text="Subir Archivo",
+            style="Secondary.TButton",
+            command=self.select_excel
+        ).pack(side="left")
+
+        ttk.Button(
+            row,
+            text="Eliminar lineas",
             style="Danger.TButton",
             command=self.discard_selected
         ).pack(side="right", padx=(10, 0))
 
         ttk.Button(
-            actions,
+            row,
             text="Confirmar",
             style="Success.TButton",
             command=self.confirm_loaded
         ).pack(side="right", padx=(10, 0))
 
         ttk.Button(
-            actions,
+            row,
             text="Editar",
             style="Primary.TButton",
             command=self._edit_selected_row
@@ -929,7 +1048,8 @@ class HorasExtrasGUI:
         period_row = ttk.Frame(card, style="Card.TFrame")
         period_row.pack(fill="x", pady=(0, 24))
 
-        ttk.Label(period_row, text="Desde:", style="SectionLabel.TLabel").pack(side="left", padx=(0, 8))
+        ttk.Label(period_row, text="Desde:", style="SectionLabel.TLabel").pack(side="left", padx=(0, 4))
+        tk.Label(period_row, text="*", bg="#ffffff", fg="#f59e0b", font=("Segoe UI", 11, "bold")).pack(side="left", padx=(0, 8))
         self.reporte_desde_var = tk.StringVar()
         reporte_desde_frame = ttk.Frame(period_row, style="Card.TFrame")
         reporte_desde_frame.pack(side="left")
@@ -941,7 +1061,8 @@ class HorasExtrasGUI:
             command=lambda: self._open_date_picker(self.reporte_desde_var),
         ).pack(side="left", padx=(6, 0))
 
-        ttk.Label(period_row, text="Hasta:", style="SectionLabel.TLabel").pack(side="left", padx=(30, 8))
+        ttk.Label(period_row, text="Hasta:", style="SectionLabel.TLabel").pack(side="left", padx=(30, 4))
+        tk.Label(period_row, text="*", bg="#ffffff", fg="#f59e0b", font=("Segoe UI", 11, "bold")).pack(side="left", padx=(0, 8))
         self.reporte_hasta_var = tk.StringVar()
         reporte_hasta_frame = ttk.Frame(period_row, style="Card.TFrame")
         reporte_hasta_frame.pack(side="left")
@@ -953,12 +1074,21 @@ class HorasExtrasGUI:
             command=lambda: self._open_date_picker(self.reporte_hasta_var),
         ).pack(side="left", padx=(6, 0))
 
+        acciones_reporte = ttk.Frame(card, style="Card.TFrame")
+        acciones_reporte.pack(anchor="center", pady=(8, 0))
+
         ttk.Button(
-            card,
+            acciones_reporte,
             text="Generar Reporte",
             style="Success.TButton",
             command=self.generar_reporte
-        ).pack(anchor="center", pady=(8, 0))
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            acciones_reporte,
+            text="Limpiar",
+            style="Clean.TButton",
+            command=self.clear_reportes_filters
+        ).pack(side="left")
 
     # =========================
     # DATOS / TABLA
@@ -1001,8 +1131,58 @@ class HorasExtrasGUI:
         for idx, row in self.preview_df.iterrows():
             marcado = bool(row.get(self.INTERNAL_SELECTION_COLUMN, False))
             checkbox = "[x]" if marcado else "[ ]"
-            values = [checkbox] + [self._display_value(row.get(col, "")) for col in self.DISPLAY_COLUMNS]
+            
+            hours_alert = "⚠️ " if self._row_has_inconsistency(row) else ""
+            
+            values = [hours_alert + checkbox] + [self._display_value(row.get(col, "")) for col in self.DISPLAY_COLUMNS]
             self.tree.insert("", "end", iid=str(idx), values=values)
+
+    def _row_has_inconsistency(self, row) -> bool:
+        try:
+            horas_trabajadas = self._to_float(row.get("HORAS_TRABAJADAS", 0))
+            horas_normales = self._to_float(row.get("HORAS_NORMALES_DIURNAS", 0))
+            horas_extras = self._to_float(row.get("HORAS_EXTRAS_NORMALES", 0))
+            horas_nocturnas = self._to_float(row.get("HORAS_NOCTURNAS", 0))
+
+            suma_horas = horas_normales + horas_extras + horas_nocturnas
+            return abs(horas_trabajadas - suma_horas) > 0.01
+        except (ValueError, TypeError):
+            return False
+
+    def _selected_rows_have_inconsistency(self) -> list[str]:
+        if self.preview_df.empty or self.INTERNAL_SELECTION_COLUMN not in self.preview_df.columns:
+            return []
+
+        inconsistent_rows = self.preview_df[
+            self.preview_df[self.INTERNAL_SELECTION_COLUMN].astype(bool)
+        ]
+        inconsistent_rows = inconsistent_rows[inconsistent_rows.apply(self._row_has_inconsistency, axis=1)]
+
+        labels = []
+        for _, row in inconsistent_rows.iterrows():
+            name = str(row.get("NOMBRE_Y_APELLIDO", "")).strip()
+            record_id = str(row.get("ID", "")).strip()
+            label = name or record_id or "Fila seleccionada"
+            labels.append(label)
+        return labels
+
+    @staticmethod
+    def _to_float(value) -> float:
+        if pd.isna(value) or value is None:
+            return 0.0
+        if isinstance(value, str):
+            cleaned = value.strip().replace(",", ".")
+            return float(cleaned) if cleaned else 0.0
+        return float(value)
+
+    def toggle_all_selection(self):
+        self.ensure_selection_column()
+        if self.preview_df.empty:
+            return
+
+        all_selected = bool(self.preview_df[self.INTERNAL_SELECTION_COLUMN].all())
+        self.preview_df[self.INTERNAL_SELECTION_COLUMN] = not all_selected
+        self.refresh_table()
 
     def _refresh_reportes_empleados(self):
         if not hasattr(self, "reporte_empleado_combo"):
@@ -1031,6 +1211,11 @@ class HorasExtrasGUI:
     def on_single_click(self, event):
         col_id = self.tree.identify_column(event.x)
         row_id = self.tree.identify_row(event.y)
+        region = self.tree.identify("region", event.x, event.y)
+
+        if col_id == "#1" and region == "heading":
+            self.toggle_all_selection()
+            return "break"
 
         if col_id == "#1" and row_id:
             row_index = int(row_id)
@@ -1060,7 +1245,12 @@ class HorasExtrasGUI:
             return
 
         row_index = int(selected)
-        current_value = self._display_value(self.preview_df.iloc[row_index][column_name])
+        row_data = self.preview_df.loc[row_index]
+        if str(row_data.get("ROW_STATUS", "")).strip().upper() == "CONFIRMADO":
+            messagebox.showinfo("Fila confirmada", "Las filas confirmadas no se pueden editar. Solo podés borrarlas.")
+            return
+
+        current_value = self._display_value(row_data[column_name])
 
         new_value = simpledialog.askstring(
             "Editar",
@@ -1103,6 +1293,11 @@ class HorasExtrasGUI:
         self.fecha_desde_var.set("")
         self.fecha_hasta_var.set("")
         self.apply_filters()
+
+    def clear_reportes_filters(self):
+        self.reporte_empleado_var.set("")
+        self.reporte_desde_var.set("")
+        self.reporte_hasta_var.set("")
 
     def reset_filters_for_no_confirmado(self):
         self.row_status_var.set("NO_CONFIRMADO")
@@ -1147,6 +1342,15 @@ class HorasExtrasGUI:
                 self.preview_df[self.INTERNAL_SELECTION_COLUMN],
                 "ID",
             ].tolist()
+
+            inconsistent_labels = self._selected_rows_have_inconsistency()
+            if inconsistent_labels:
+                detalles = "\n".join(f"- {label}" for label in inconsistent_labels)
+                messagebox.showwarning(
+                    "No se puede confirmar",
+                    "Hay filas seleccionadas con horas inconsistentes. Corregilas antes de confirmar:\n\n" + detalles,
+                )
+                return
 
             self.preview_df, self.temporal_loaded = self.workflow.confirm_selected(
                 self.preview_df,
@@ -1195,19 +1399,40 @@ class HorasExtrasGUI:
         desde = self.reporte_desde_var.get().strip()
         hasta = self.reporte_hasta_var.get().strip()
 
-        if not empleado:
-            messagebox.showwarning("Falta empleado", "Seleccioná un empleado.")
-            return
-
         if not desde or not hasta:
             messagebox.showwarning("Falta período", "Indicá fecha desde y hasta.")
             return
 
-        # Acá conectás con tu service real
-        messagebox.showinfo(
-            "Reporte",
-            f"Generar reporte para:\n\nEmpleado: {empleado}\nDesde: {desde}\nHasta: {hasta}"
-        )
+        try:
+            reporte_df = self.workflow.build_reporte_df(
+                fecha_desde=desde,
+                fecha_hasta=hasta,
+                empleado=empleado,
+            )
+
+            if reporte_df.empty:
+                messagebox.showinfo("Reporte", "No hay registros para el filtro seleccionado.")
+                return
+
+            save_path = filedialog.asksaveasfilename(
+                title="Guardar reporte",
+                defaultextension=".xlsx",
+                filetypes=[("Excel", "*.xlsx")],
+                initialfile="ReporteHorasExtras.xlsx",
+            )
+            if not save_path:
+                return
+
+            reporte_df.to_excel(save_path, index=False)
+            msg_empleado = empleado if empleado else "TODOS"
+            messagebox.showinfo(
+                "Reporte generado",
+                f"Reporte guardado correctamente.\n\nEmpleado: {msg_empleado}\nDesde: {desde}\nHasta: {hasta}\nRegistros: {len(reporte_df)}",
+            )
+        except ValueError as exc:
+            messagebox.showerror("Reporte", str(exc))
+        except Exception as exc:
+            messagebox.showerror("Reporte", f"No se pudo generar el reporte: {exc}")
 
     def run(self):
         self.root.mainloop()

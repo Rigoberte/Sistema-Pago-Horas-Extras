@@ -49,6 +49,41 @@ class HorasExtrasWorkflowService:
 
         return df[self.TABLE_COLUMNS]
 
+    def build_reporte_df(
+        self,
+        fecha_desde: str,
+        fecha_hasta: str,
+        empleado: str = "",
+    ) -> pd.DataFrame:
+        ts_desde = self._parse_date_filter(fecha_desde, "fecha desde")
+        ts_hasta = self._parse_date_filter(fecha_hasta, "fecha hasta")
+
+        if ts_desde is None or ts_hasta is None:
+            raise ValueError("Las fechas desde y hasta son obligatorias.")
+        if ts_desde > ts_hasta:
+            raise ValueError("La fecha desde no puede ser mayor que la fecha hasta.")
+
+        df = self.historico.read().copy()
+        df = df[df["ROW_STATUS"].str.upper() == "CONFIRMADO"]
+        df = df[df["INGRESO"].dt.normalize() >= ts_desde]
+        df = df[df["INGRESO"].dt.normalize() <= ts_hasta]
+
+        empleado_filtro = (empleado or "").strip().upper()
+        if empleado_filtro:
+            df = df[df["NOMBRE_Y_APELLIDO"].str.upper() == empleado_filtro]
+
+        report_columns = [
+            column_name
+            for column_name in self.TABLE_COLUMNS
+            if column_name not in {"ID", "ROW_STATUS"}
+        ]
+
+        if df.empty:
+            return df[report_columns]
+
+        df = df.sort_values(by=["NOMBRE_Y_APELLIDO", "INGRESO"]).reset_index(drop=True)
+        return df[report_columns]
+
     @staticmethod
     def _parse_date_filter(raw_value: str, field_name: str) -> pd.Timestamp | None:
         value = (raw_value or "").strip()

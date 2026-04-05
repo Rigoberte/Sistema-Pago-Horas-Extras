@@ -1,4 +1,5 @@
 import pandas as pd
+import datetime
 
 class FeriadosReader:
     def __init__(self):
@@ -41,9 +42,10 @@ class FeriadosReader:
 
         df.to_excel(self.excel_path, index=False)
 
-    def is_holiday(self, date: pd.Timestamp) -> bool:
+    def is_holiday(self, date_input: pd.Timestamp) -> bool:
         df = self.read()
-        return df["FECHA_FERIADO"].eq(date.normalize()).any()
+        date = datetime.datetime(date_input.year, date_input.month, date_input.day)
+        return df["FECHA_FERIADO"].eq(date).any()
     
     def update_date(self, old_fecha_feriado: pd.Timestamp, new_fecha_feriado: pd.Timestamp, new_descripcion_feriado: str):
         df = self.read()
