@@ -14,11 +14,7 @@ class SeparadorDeJornales:
     def build_result_df(self, reporte_horas_extras_df: pd.DataFrame | None = None) -> pd.DataFrame:
         reporte_base = reporte_horas_extras_df if reporte_horas_extras_df is not None else self.reporte_horas_extras_df
 
-        reporte_horas_extras_df = reporte_base.merge(
-            self.datos_empleados_df,
-            on="NOMBRE_Y_APELLIDO",
-            how="left"
-        )
+        reporte_horas_extras_df = self._match_empleados_unico(reporte_base)
 
         reporte_horas_extras_df["HORAS_TRABAJADAS"] = (
             reporte_horas_extras_df["EGRESO"] - reporte_horas_extras_df["INGRESO"]
@@ -38,6 +34,41 @@ class SeparadorDeJornales:
 
         reporte_horas_extras_df = pd.concat([reporte_horas_extras_df, resultados], axis=1)
         return reporte_horas_extras_df
+
+    @staticmethod
+    def _normalize_name(value: str) -> str:
+        if pd.isna(value):
+            return ""
+        return " ".join(str(value).upper().strip().split())
+
+    def _match_empleados_unico(self, reporte_df: pd.DataFrame) -> pd.DataFrame:
+        empleados_df = self.datos_empleados_df.copy()
+        empleados_df["__MATCH_KEY__"] = empleados_df["NOMBRE_Y_APELLIDO"].apply(self._normalize_name)
+
+        duplicados = empleados_df[empleados_df["__MATCH_KEY__"].duplicated(keep=False)]
+        if not duplicados.empty:
+            nombres = "\n".join(f"- {name}" for name in sorted(duplicados["NOMBRE_Y_APELLIDO"].unique().tolist()))
+            raise ValueError(
+                "No se puede hacer un match unico porque hay empleados duplicados:\n\n" + nombres
+            )
+
+        reporte = reporte_df.copy()
+        reporte["__MATCH_KEY__"] = reporte["NOMBRE_Y_APELLIDO"].apply(self._normalize_name)
+
+        merged_df = reporte.merge(
+            empleados_df[["__MATCH_KEY__", "HS_JORNAL", "VALOR_HS_JORNAL"]],
+            on="__MATCH_KEY__",
+            how="left",
+        )
+
+        faltantes = merged_df[merged_df["HS_JORNAL"].isna()]["NOMBRE_Y_APELLIDO"].dropna().astype(str).unique().tolist()
+        if faltantes:
+            empleados = "\n".join(f"- {name}" for name in sorted(faltantes))
+            raise ValueError(
+                "No se encontro un empleado para estos nombres/apellidos:\n\n" + empleados
+            )
+
+        return merged_df.drop(columns=["__MATCH_KEY__"])
 
     def split_jornales(self):
         reporte_horas_extras_df = self.build_result_df()

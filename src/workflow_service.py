@@ -2,10 +2,15 @@ import pandas as pd
 
 from src.Qontact_report_reader import ReporteHorasExtras
 from src.controlador_historico import ControladorHistorico
+from src.datos_empleados_reader import DatosEmpleados
 from src.separador_de_jornales import SeparadorDeJornales
 
 
 class HorasExtrasWorkflowService:
+    MULTIPLIER_HORAS_NORMALES = 1.0
+    MULTIPLIER_HORAS_EXTRAS = 1.5
+    MULTIPLIER_HORAS_NOCTURNAS = 2.0
+
     TABLE_COLUMNS = [
         "ID",
         "ROW_STATUS",
@@ -13,6 +18,8 @@ class HorasExtrasWorkflowService:
         "INGRESO",
         "EGRESO",
         "COMENTARIOS",
+        "VALOR_HS_JORNAL",
+        "IMPORTE",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
         "HORAS_EXTRAS_NORMALES",
@@ -47,7 +54,7 @@ class HorasExtrasWorkflowService:
         if ts_hasta is not None:
             df = df[df["INGRESO"].dt.normalize() <= ts_hasta]
 
-        return df[self.TABLE_COLUMNS]
+        return self.recalculate_importes(df[self.TABLE_COLUMNS])
 
     def build_reporte_df(
         self,
@@ -82,6 +89,7 @@ class HorasExtrasWorkflowService:
             return df[report_columns]
 
         df = df.sort_values(by=["NOMBRE_Y_APELLIDO", "INGRESO"]).reset_index(drop=True)
+        df = self.recalculate_importes(df)
         return df[report_columns]
 
     @staticmethod
@@ -101,14 +109,24 @@ class HorasExtrasWorkflowService:
         reporte_df = ReporteHorasExtras().read(excel_path)
         result_df = SeparadorDeJornales(reporte_df).build_result_df()
 
-        faltantes_hs_jornal = result_df[result_df["HS_JORNAL"].isna()]["NOMBRE_Y_APELLIDO"].unique().tolist()
-        if faltantes_hs_jornal:
-            empleados = "\n".join(f"- {name}" for name in faltantes_hs_jornal)
-            raise ValueError(
-                "Hay empleados sin HS_JORNAL configurado:\n\n" + empleados
-            )
-
         preview_df = result_df.copy()
+        preview_df["ID"] = ""
+        preview_df["ROW_STATUS"] = "NO_CONFIRMADO"
+
+        if "COMENTARIOS" not in preview_df.columns:
+            preview_df["COMENTARIOS"] = ""
+
+        preview_df = self.recalculate_importes(preview_df)
+
+        return preview_df[self.TABLE_COLUMNS]
+
+    def build_manual_record(self, row_data: dict) -> pd.DataFrame:
+        base_df = pd.DataFrame([row_data])
+        base_df["NOMBRE_Y_APELLIDO"] = base_df["NOMBRE_Y_APELLIDO"].astype(str).str.strip().str.upper()
+
+        # En carga manual las horas se calculan automaticamente desde ingreso/egreso.
+        preview_df = SeparadorDeJornales(base_df).build_result_df()
+        preview_df = self.recalculate_importes(preview_df)
         preview_df["ID"] = ""
         preview_df["ROW_STATUS"] = "NO_CONFIRMADO"
 
@@ -118,7 +136,7 @@ class HorasExtrasWorkflowService:
         return preview_df[self.TABLE_COLUMNS]
 
     def load_temporal(self, preview_df: pd.DataFrame, already_loaded: bool) -> tuple[pd.DataFrame, bool]:
-        updated_df = preview_df.copy()
+        updated_df = self.recalculate_importes(preview_df.copy())
 
         if not already_loaded:
             ids = self.historico.add_temporal_records(updated_df)
@@ -130,7 +148,7 @@ class HorasExtrasWorkflowService:
         return updated_df, True
 
     def confirm_loaded(self, preview_df: pd.DataFrame, already_loaded: bool) -> tuple[pd.DataFrame, bool]:
-        updated_df = preview_df.copy()
+        updated_df = self.recalculate_importes(preview_df.copy())
 
         if not already_loaded:
             updated_df, already_loaded = self.load_temporal(updated_df, already_loaded)
@@ -147,7 +165,7 @@ class HorasExtrasWorkflowService:
         selected_ids: list[str],
         already_loaded: bool,
     ) -> tuple[pd.DataFrame, bool]:
-        updated_df = preview_df.copy()
+        updated_df = self.recalculate_importes(preview_df.copy())
 
         if not already_loaded:
             updated_df, already_loaded = self.load_temporal(updated_df, already_loaded)
@@ -168,7 +186,7 @@ class HorasExtrasWorkflowService:
         selected_ids: list[str],
         already_loaded: bool,
     ) -> tuple[pd.DataFrame, bool]:
-        updated_df = preview_df.copy()
+        updated_df = self.recalculate_importes(preview_df.copy())
 
         if not already_loaded:
             updated_df, already_loaded = self.load_temporal(updated_df, already_loaded)
@@ -189,3 +207,89 @@ class HorasExtrasWorkflowService:
         if column_name == "COMENTARIOS":
             return value.strip()
         return float(value)
+
+    @staticmethod
+    def _parse_numeric(series: pd.Series) -> pd.Series:
+        return pd.to_numeric(series, errors="coerce").fillna(0.0)
+
+    @staticmethod
+    def _normalize_name(value: str) -> str:
+        if pd.isna(value):
+            return ""
+        return " ".join(str(value).upper().strip().split())
+
+    def _build_valor_jornal_map(self) -> dict[str, float]:
+        empleados_df = DatosEmpleados().read().copy()
+        empleados_df["__MATCH_KEY__"] = empleados_df["NOMBRE_Y_APELLIDO"].apply(self._normalize_name)
+
+        duplicados = empleados_df[empleados_df["__MATCH_KEY__"].duplicated(keep=False)]
+        if not duplicados.empty:
+            nombres = "\n".join(f"- {name}" for name in sorted(duplicados["NOMBRE_Y_APELLIDO"].unique().tolist()))
+            raise ValueError(
+                "No se puede hacer un match unico porque hay empleados duplicados:\n\n" + nombres
+            )
+
+        return dict(
+            zip(
+                empleados_df["__MATCH_KEY__"],
+                pd.to_numeric(empleados_df["VALOR_HS_JORNAL"], errors="coerce"),
+            )
+        )
+
+    def recalculate_importes(self, df: pd.DataFrame, enrich_valor_jornal: bool = False) -> pd.DataFrame:
+        result_df = df.copy()
+        if result_df.empty:
+            for column in self.TABLE_COLUMNS:
+                if column not in result_df.columns:
+                    result_df[column] = "" if column in {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "COMENTARIOS"} else 0.0
+            return result_df
+
+        for hour_column in [
+            "HORAS_NORMALES_DIURNAS",
+            "HORAS_EXTRAS_NORMALES",
+            "HORAS_NOCTURNAS",
+        ]:
+            if hour_column not in result_df.columns:
+                result_df[hour_column] = 0.0
+
+        if "VALOR_HS_JORNAL" not in result_df.columns:
+            result_df["VALOR_HS_JORNAL"] = 0.0
+
+        if enrich_valor_jornal:
+            valor_map = self._build_valor_jornal_map()
+            result_df["__MATCH_KEY__"] = result_df["NOMBRE_Y_APELLIDO"].apply(self._normalize_name)
+
+            result_df["VALOR_HS_JORNAL"] = result_df.apply(
+                lambda row: valor_map.get(row["__MATCH_KEY__"], float("nan")),
+                axis=1,
+            )
+
+            no_match = result_df[result_df["VALOR_HS_JORNAL"].isna() | (pd.to_numeric(result_df["VALOR_HS_JORNAL"], errors="coerce").isna())]
+            if not no_match.empty:
+                nombres = "\n".join(f"- {name}" for name in sorted(no_match["NOMBRE_Y_APELLIDO"].astype(str).unique().tolist()))
+                raise ValueError(
+                    "No se encontro un empleado para estos nombres/apellidos:\n\n" + nombres
+                )
+
+            result_df = result_df.drop(columns=["__MATCH_KEY__"])
+
+        valor_hs_jornal = self._parse_numeric(result_df["VALOR_HS_JORNAL"])
+        horas_normales = self._parse_numeric(result_df["HORAS_NORMALES_DIURNAS"])
+        horas_extras = self._parse_numeric(result_df["HORAS_EXTRAS_NORMALES"])
+        horas_nocturnas = self._parse_numeric(result_df["HORAS_NOCTURNAS"])
+
+        importe_calculado = valor_hs_jornal * (
+            horas_normales * self.MULTIPLIER_HORAS_NORMALES
+            + horas_extras * self.MULTIPLIER_HORAS_EXTRAS
+            + horas_nocturnas * self.MULTIPLIER_HORAS_NOCTURNAS
+        )
+
+        if "ROW_STATUS" in result_df.columns and "IMPORTE" in result_df.columns:
+            estados = result_df["ROW_STATUS"].astype(str).str.upper()
+            existentes = pd.to_numeric(result_df["IMPORTE"], errors="coerce")
+            es_dinamico = estados == "NO_CONFIRMADO"
+            result_df["IMPORTE"] = existentes.where(~es_dinamico & existentes.notna(), importe_calculado)
+        else:
+            result_df["IMPORTE"] = importe_calculado
+
+        return result_df

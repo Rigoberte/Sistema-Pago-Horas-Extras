@@ -18,6 +18,7 @@ class HorasExtrasGUI:
 
     EDITABLE_COLUMNS = {
         "COMENTARIOS",
+        "VALOR_HS_JORNAL",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
         "HORAS_EXTRAS_NORMALES",
@@ -44,6 +45,10 @@ class HorasExtrasGUI:
         self.temporal_loaded = True
         self.selected_empleado_nombre = ""
         self.selected_feriado_fecha = None
+        self.selected_feriado_descripcion = ""
+        self.manual_load_window = None
+        self.manual_feedback_var = None
+        self.manual_fields = {}
 
         self.current_view = "validacion"
         self.path_var = tk.StringVar(value="Sin archivo seleccionado")
@@ -429,7 +434,6 @@ class HorasExtrasGUI:
         self.emp_nombre_var = tk.StringVar()
         self.emp_valor_hs_jornal_var = tk.StringVar()
         self.emp_hs_jornal_var = tk.StringVar()
-        self.emp_valor_hs_extras_var = tk.StringVar()
 
         ttk.Label(form, text="Nombre", style="SectionLabel.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
         ttk.Entry(form, textvariable=self.emp_nombre_var, width=22).grid(row=0, column=1, sticky="w", pady=4)
@@ -440,9 +444,6 @@ class HorasExtrasGUI:
         ttk.Label(form, text="Hs jornal", style="SectionLabel.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
         ttk.Entry(form, textvariable=self.emp_hs_jornal_var, width=22).grid(row=1, column=1, sticky="w", pady=4)
 
-        ttk.Label(form, text="Valor hs extras", style="SectionLabel.TLabel").grid(row=1, column=2, sticky="w", padx=(18, 8), pady=4)
-        ttk.Entry(form, textvariable=self.emp_valor_hs_extras_var, width=22).grid(row=1, column=3, sticky="w", pady=4)
-
         actions = ttk.Frame(form, style="Card.TFrame")
         actions.grid(row=0, column=4, rowspan=2, padx=(20, 0), sticky="e")
         form.columnconfigure(4, weight=1)
@@ -452,7 +453,7 @@ class HorasExtrasGUI:
         ttk.Button(actions, text="Actualizar", style="SmallSuccess.TButton", command=self.update_empleado).grid(row=1, column=0, padx=(0, 8), sticky="ew")
         ttk.Button(actions, text="Limpiar", style="SmallClean.TButton", command=self.clear_empleado_form).grid(row=1, column=1, sticky="ew")
 
-        columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL", "VALOR_HS_EXTRAS")
+        columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL")
         self.empleados_tree = ttk.Treeview(card, columns=columns, show="headings", height=12)
         self.empleados_tree.pack(fill="x")
         self.empleados_tree.bind("<<TreeviewSelect>>", self.on_empleado_selected)
@@ -461,7 +462,6 @@ class HorasExtrasGUI:
             "NOMBRE_Y_APELLIDO": 320,
             "VALOR_HS_JORNAL": 180,
             "HS_JORNAL": 140,
-            "VALOR_HS_EXTRAS": 180,
         }
 
         for col in columns:
@@ -564,7 +564,6 @@ class HorasExtrasGUI:
                     str(row.get("NOMBRE_Y_APELLIDO", "")),
                     self._display_value(row.get("VALOR_HS_JORNAL", "")),
                     self._display_value(row.get("HS_JORNAL", "")),
-                    self._display_value(row.get("VALOR_HS_EXTRAS", "")),
                 ),
             )
 
@@ -581,14 +580,12 @@ class HorasExtrasGUI:
         self.emp_nombre_var.set(str(values[0]))
         self.emp_valor_hs_jornal_var.set(str(values[1]))
         self.emp_hs_jornal_var.set(str(values[2]))
-        self.emp_valor_hs_extras_var.set(str(values[3]))
 
     def clear_empleado_form(self):
         self.selected_empleado_nombre = ""
         self.emp_nombre_var.set("")
         self.emp_valor_hs_jornal_var.set("")
         self.emp_hs_jornal_var.set("")
-        self.emp_valor_hs_extras_var.set("")
 
     def add_empleado(self):
         try:
@@ -598,9 +595,8 @@ class HorasExtrasGUI:
 
             valor_hs_jornal = self._parse_float(self.emp_valor_hs_jornal_var.get(), "valor hs jornal")
             hs_jornal = self._parse_float(self.emp_hs_jornal_var.get(), "hs jornal")
-            valor_hs_extras = self._parse_float(self.emp_valor_hs_extras_var.get(), "valor hs extras")
 
-            self.datos_empleados.add_employee(nombre, valor_hs_jornal, hs_jornal, valor_hs_extras)
+            self.datos_empleados.add_employee(nombre, valor_hs_jornal, hs_jornal)
             self.refresh_empleados_table()
             self.clear_empleado_form()
             messagebox.showinfo("Empleados", "Empleado agregado correctamente.")
@@ -621,9 +617,8 @@ class HorasExtrasGUI:
 
             valor_hs_jornal = self._parse_float(self.emp_valor_hs_jornal_var.get(), "valor hs jornal")
             hs_jornal = self._parse_float(self.emp_hs_jornal_var.get(), "hs jornal")
-            valor_hs_extras = self._parse_float(self.emp_valor_hs_extras_var.get(), "valor hs extras")
 
-            self.datos_empleados.update_employee_data(nombre_original, valor_hs_jornal, hs_jornal, valor_hs_extras)
+            self.datos_empleados.update_employee_data(nombre_original, valor_hs_jornal, hs_jornal)
             self.refresh_empleados_table()
             messagebox.showinfo("Empleados", "Empleado actualizado correctamente.")
         except ValueError as exc:
@@ -687,9 +682,11 @@ class HorasExtrasGUI:
         self.feriado_fecha_var.set(str(values[0]))
         self.feriado_desc_var.set(str(values[1]))
         self.selected_feriado_fecha = self._parse_feriado_date(str(values[0]))
+        self.selected_feriado_descripcion = str(values[1]).strip()
 
     def clear_feriado_form(self):
         self.selected_feriado_fecha = None
+        self.selected_feriado_descripcion = ""
         self.feriado_fecha_var.set("")
         self.feriado_desc_var.set("")
 
@@ -719,7 +716,12 @@ class HorasExtrasGUI:
             if not nueva_descripcion:
                 raise ValueError("La descripcion es obligatoria.")
 
-            self.feriados_reader.update_date(self.selected_feriado_fecha, nueva_fecha, nueva_descripcion)
+            self.feriados_reader.update_date(
+                self.selected_feriado_fecha,
+                self.selected_feriado_descripcion,
+                nueva_fecha,
+                nueva_descripcion,
+            )
             self.refresh_feriados_table()
             self.clear_feriado_form()
             messagebox.showinfo("Feriados", "Feriado actualizado correctamente.")
@@ -903,6 +905,13 @@ class HorasExtrasGUI:
 
         ttk.Button(
             row,
+            text="Carga Manual",
+            style="Secondary.TButton",
+            command=self._open_manual_load_form
+        ).pack(side="left", padx=(10, 0))
+
+        ttk.Button(
+            row,
             text="Eliminar lineas",
             style="Danger.TButton",
             command=self.discard_selected
@@ -913,13 +922,6 @@ class HorasExtrasGUI:
             text="Confirmar",
             style="Success.TButton",
             command=self.confirm_loaded
-        ).pack(side="right", padx=(10, 0))
-
-        ttk.Button(
-            row,
-            text="Editar",
-            style="Primary.TButton",
-            command=self._edit_selected_row
         ).pack(side="right", padx=(10, 0))
 
     def _open_date_picker(self, target_var: tk.StringVar):
@@ -1017,6 +1019,143 @@ class HorasExtrasGUI:
         ttk.Button(footer, text="Cerrar", style="Primary.TButton", command=popup.destroy).pack(side="right")
 
         render_calendar()
+
+    def _parse_datetime_input(self, raw_value: str, field_name: str) -> pd.Timestamp:
+        value = (raw_value or "").strip()
+        if not value:
+            raise ValueError(f"El campo '{field_name}' es obligatorio.")
+
+        for fmt in (
+            "%d/%m/%Y %H:%M",
+            "%d/%m/%Y %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d %H:%M:%S",
+        ):
+            parsed = pd.to_datetime(value, format=fmt, errors="coerce")
+            if not pd.isna(parsed):
+                return parsed
+
+        raise ValueError(
+            f"Formato invalido para {field_name}. Usa dd/mm/yyyy hh:mm o yyyy-mm-dd hh:mm."
+        )
+
+    def _reset_manual_fields(self):
+        # Mantener el nombre agiliza la carga consecutiva de varias filas del mismo empleado.
+        for key, var in self.manual_fields.items():
+            if key == "NOMBRE_Y_APELLIDO":
+                continue
+            var.set("")
+
+    def _show_manual_feedback(self, text: str, is_error: bool = False):
+        if self.manual_feedback_var is None or self.manual_load_window is None:
+            return
+
+        self.manual_feedback_var.set(text)
+        feedback_label = getattr(self, "manual_feedback_label", None)
+        if feedback_label is not None:
+            feedback_label.configure(fg="#b42318" if is_error else "#2e7d32")
+
+        if not is_error:
+            self.manual_load_window.after(700, lambda: self.manual_feedback_var.set(""))
+
+    def _submit_manual_load(self):
+        try:
+            nombre = (self.manual_fields["NOMBRE_Y_APELLIDO"].get() or "").strip()
+            if not nombre:
+                raise ValueError("El campo 'nombre' es obligatorio.")
+
+            ingreso = self._parse_datetime_input(self.manual_fields["INGRESO"].get(), "ingreso")
+            egreso = self._parse_datetime_input(self.manual_fields["EGRESO"].get(), "egreso")
+            if egreso <= ingreso:
+                raise ValueError("El egreso debe ser mayor al ingreso.")
+
+            comentarios = (self.manual_fields["COMENTARIOS"].get() or "").strip()
+
+            new_row = {
+                "ID": "",
+                "ROW_STATUS": "NO_CONFIRMADO",
+                "NOMBRE_Y_APELLIDO": nombre,
+                "INGRESO": ingreso,
+                "EGRESO": egreso,
+                "COMENTARIOS": comentarios,
+            }
+
+            new_record_df = self.workflow.build_manual_record(new_row)
+            self.workflow.historico.add_temporal_records(new_record_df)
+
+            self.load_historico_with_current_filters()
+            self._reset_manual_fields()
+            self._show_manual_feedback("Fila cargada correctamente")
+        except ValueError as exc:
+            self._show_manual_feedback(str(exc), is_error=True)
+        except Exception as exc:
+            self._show_manual_feedback(f"No se pudo cargar: {exc}", is_error=True)
+
+    def _open_manual_load_form(self):
+        if self.manual_load_window is not None:
+            try:
+                if self.manual_load_window.winfo_exists():
+                    self.manual_load_window.deiconify()
+                    self.manual_load_window.lift()
+                    self.manual_load_window.focus_force()
+                    return
+            except tk.TclError:
+                self.manual_load_window = None
+
+        self.manual_load_window = tk.Toplevel(self.root)
+        self.manual_load_window.title("Carga manual")
+        self.manual_load_window.resizable(False, False)
+        self.manual_load_window.transient(self.root)
+
+        container = ttk.Frame(self.manual_load_window, padding=(14, 12))
+        container.pack(fill="both", expand=True)
+
+        self.manual_fields = {
+            "NOMBRE_Y_APELLIDO": tk.StringVar(),
+            "INGRESO": tk.StringVar(),
+            "EGRESO": tk.StringVar(),
+            "COMENTARIOS": tk.StringVar(),
+        }
+
+        labels = [
+            ("Nombre", "NOMBRE_Y_APELLIDO"),
+            ("Ingreso (dd/mm/yyyy hh:mm)", "INGRESO"),
+            ("Egreso (dd/mm/yyyy hh:mm)", "EGRESO"),
+            ("Comentarios", "COMENTARIOS"),
+        ]
+
+        for row_idx, (label, key) in enumerate(labels):
+            ttk.Label(container, text=label, style="SectionLabel.TLabel").grid(row=row_idx, column=0, sticky="w", pady=4)
+            ttk.Entry(container, textvariable=self.manual_fields[key], width=34).grid(row=row_idx, column=1, sticky="w", padx=(10, 0), pady=4)
+
+        actions = ttk.Frame(container, style="Card.TFrame")
+        actions.grid(row=len(labels), column=0, columnspan=2, sticky="e", pady=(12, 0))
+
+        ttk.Button(actions, text="Ok", style="Success.TButton", command=self._submit_manual_load).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="Cerrar", style="Secondary.TButton", command=self._close_manual_load_form).pack(side="left")
+
+        self.manual_feedback_var = tk.StringVar(value="")
+        self.manual_feedback_label = tk.Label(
+            container,
+            textvariable=self.manual_feedback_var,
+            bg="#ffffff",
+            fg="#2e7d32",
+            font=("Segoe UI", 10, "bold"),
+            anchor="w",
+        )
+        self.manual_feedback_label.grid(row=len(labels) + 1, column=0, columnspan=2, sticky="w", pady=(8, 0))
+
+        self.manual_load_window.protocol("WM_DELETE_WINDOW", self._close_manual_load_form)
+
+    def _close_manual_load_form(self):
+        if self.manual_load_window is not None:
+            try:
+                self.manual_load_window.destroy()
+            except tk.TclError:
+                pass
+        self.manual_load_window = None
+        self.manual_feedback_var = None
+        self.manual_fields = {}
 
     # =========================
     # VISTA REPORTES
@@ -1264,6 +1403,7 @@ class HorasExtrasGUI:
         try:
             parsed = self.workflow.parse_edition_value(column_name, new_value)
             self.preview_df.at[row_index, column_name] = parsed
+            self.preview_df = self.workflow.recalculate_importes(self.preview_df)
             self.refresh_table()
 
             if self.temporal_loaded:

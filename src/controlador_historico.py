@@ -10,6 +10,8 @@ class ControladorHistorico:
         "INGRESO",
         "EGRESO",
         "COMENTARIOS",
+        "VALOR_HS_JORNAL",
+        "IMPORTE",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
         "HORAS_EXTRAS_NORMALES",
@@ -24,6 +26,8 @@ class ControladorHistorico:
     ]
 
     NUMERIC_COLUMNS = [
+        "VALOR_HS_JORNAL",
+        "IMPORTE",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
         "HORAS_EXTRAS_NORMALES",
@@ -82,6 +86,8 @@ class ControladorHistorico:
 
         editable_columns = [
             "COMENTARIOS",
+            "VALOR_HS_JORNAL",
+            "IMPORTE",
             "HORAS_TRABAJADAS",
             "HORAS_NORMALES_DIURNAS",
             "HORAS_EXTRAS_NORMALES",
