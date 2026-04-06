@@ -9,8 +9,11 @@ from src.time_utils import round_timestamp_to_nearest_half_hour
 
 class HorasExtrasWorkflowService:
     MULTIPLIER_HORAS_NORMALES = 1.0
-    MULTIPLIER_HORAS_EXTRAS = 1.5
-    MULTIPLIER_HORAS_NOCTURNAS = 2.0
+    MULTIPLIER_HORAS_NORMALES_NOCTURNAS = 1.1333
+    MULTIPLIER_HORAS_EXTRAS_DIURNAS = 1.5
+    MULTIPLIER_HORAS_EXTRAS_NOCTURNAS = 1.6333
+    MULTIPLIER_HORAS_EXTRAS_DIURNAS_FERIADO = 2.0
+    MULTIPLIER_HORAS_EXTRAS_NOCTURNAS_FERIADO = 2.1333
 
     TABLE_COLUMNS = [
         "ID",
@@ -23,8 +26,11 @@ class HorasExtrasWorkflowService:
         "IMPORTE",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
-        "HORAS_EXTRAS_NORMALES",
-        "HORAS_NOCTURNAS",
+        "HORAS_NORMALES_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS",
+        "HORAS_EXTRAS_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS_FERIADO",
+        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
     ]
 
     def __init__(self):
@@ -249,11 +255,17 @@ class HorasExtrasWorkflowService:
                     result_df[column] = "" if column in {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "COMENTARIOS"} else 0.0
             return result_df
 
-        for hour_column in [
+        hour_columns = [
+            "HORAS_TRABAJADAS",
             "HORAS_NORMALES_DIURNAS",
-            "HORAS_EXTRAS_NORMALES",
-            "HORAS_NOCTURNAS",
-        ]:
+            "HORAS_NORMALES_NOCTURNAS",
+            "HORAS_EXTRAS_DIURNAS",
+            "HORAS_EXTRAS_NOCTURNAS",
+            "HORAS_EXTRAS_DIURNAS_FERIADO",
+            "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+        ]
+
+        for hour_column in hour_columns:
             if hour_column not in result_df.columns:
                 result_df[hour_column] = 0.0
 
@@ -269,9 +281,14 @@ class HorasExtrasWorkflowService:
                 axis=1,
             )
 
-            no_match = result_df[result_df["VALOR_HS_JORNAL"].isna() | (pd.to_numeric(result_df["VALOR_HS_JORNAL"], errors="coerce").isna())]
+            no_match = result_df[
+                result_df["VALOR_HS_JORNAL"].isna()
+                | (pd.to_numeric(result_df["VALOR_HS_JORNAL"], errors="coerce").isna())
+            ]
             if not no_match.empty:
-                nombres = "\n".join(f"- {name}" for name in sorted(no_match["NOMBRE_Y_APELLIDO"].astype(str).unique().tolist()))
+                nombres = "\n".join(
+                    f"- {name}" for name in sorted(no_match["NOMBRE_Y_APELLIDO"].astype(str).unique().tolist())
+                )
                 raise ValueError(
                     "No se encontro un empleado para estos nombres/apellidos:\n\n" + nombres
                 )
@@ -279,14 +296,29 @@ class HorasExtrasWorkflowService:
             result_df = result_df.drop(columns=["__MATCH_KEY__"])
 
         valor_hs_jornal = self._parse_numeric(result_df["VALOR_HS_JORNAL"])
-        horas_normales = self._parse_numeric(result_df["HORAS_NORMALES_DIURNAS"])
-        horas_extras = self._parse_numeric(result_df["HORAS_EXTRAS_NORMALES"])
-        horas_nocturnas = self._parse_numeric(result_df["HORAS_NOCTURNAS"])
+        horas_normales_diurnas = self._parse_numeric(result_df["HORAS_NORMALES_DIURNAS"])
+        horas_normales_nocturnas = self._parse_numeric(result_df["HORAS_NORMALES_NOCTURNAS"])
+        horas_extras_diurnas = self._parse_numeric(result_df["HORAS_EXTRAS_DIURNAS"])
+        horas_extras_nocturnas = self._parse_numeric(result_df["HORAS_EXTRAS_NOCTURNAS"])
+        horas_extras_diurnas_feriado = self._parse_numeric(result_df["HORAS_EXTRAS_DIURNAS_FERIADO"])
+        horas_extras_nocturnas_feriado = self._parse_numeric(result_df["HORAS_EXTRAS_NOCTURNAS_FERIADO"])
+
+        # Mantiene todas las columnas de horas como float, incluso cuando vienen como texto o enteros.
+        result_df["HORAS_TRABAJADAS"] = self._parse_numeric(result_df["HORAS_TRABAJADAS"]).astype(float)
+        result_df["HORAS_NORMALES_DIURNAS"] = horas_normales_diurnas.astype(float)
+        result_df["HORAS_NORMALES_NOCTURNAS"] = horas_normales_nocturnas.astype(float)
+        result_df["HORAS_EXTRAS_DIURNAS"] = horas_extras_diurnas.astype(float)
+        result_df["HORAS_EXTRAS_NOCTURNAS"] = horas_extras_nocturnas.astype(float)
+        result_df["HORAS_EXTRAS_DIURNAS_FERIADO"] = horas_extras_diurnas_feriado.astype(float)
+        result_df["HORAS_EXTRAS_NOCTURNAS_FERIADO"] = horas_extras_nocturnas_feriado.astype(float)
 
         importe_calculado = valor_hs_jornal * (
-            horas_normales * self.MULTIPLIER_HORAS_NORMALES
-            + horas_extras * self.MULTIPLIER_HORAS_EXTRAS
-            + horas_nocturnas * self.MULTIPLIER_HORAS_NOCTURNAS
+            horas_normales_diurnas * self.MULTIPLIER_HORAS_NORMALES
+            + horas_normales_nocturnas * self.MULTIPLIER_HORAS_NORMALES_NOCTURNAS
+            + horas_extras_diurnas * self.MULTIPLIER_HORAS_EXTRAS_DIURNAS
+            + horas_extras_nocturnas * self.MULTIPLIER_HORAS_EXTRAS_NOCTURNAS
+            + horas_extras_diurnas_feriado * self.MULTIPLIER_HORAS_EXTRAS_DIURNAS_FERIADO
+            + horas_extras_nocturnas_feriado * self.MULTIPLIER_HORAS_EXTRAS_NOCTURNAS_FERIADO
         )
 
         if "ROW_STATUS" in result_df.columns and "IMPORTE" in result_df.columns:

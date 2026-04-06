@@ -15,8 +15,11 @@ class ControladorHistorico:
         "IMPORTE",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
-        "HORAS_EXTRAS_NORMALES",
-        "HORAS_NOCTURNAS",
+        "HORAS_NORMALES_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS",
+        "HORAS_EXTRAS_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS_FERIADO",
+        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
     ]
 
     TEXT_COLUMNS = [
@@ -31,8 +34,21 @@ class ControladorHistorico:
         "IMPORTE",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
-        "HORAS_EXTRAS_NORMALES",
-        "HORAS_NOCTURNAS",
+        "HORAS_NORMALES_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS",
+        "HORAS_EXTRAS_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS_FERIADO",
+        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+    ]
+
+    HOUR_COLUMNS = [
+        "HORAS_TRABAJADAS",
+        "HORAS_NORMALES_DIURNAS",
+        "HORAS_NORMALES_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS",
+        "HORAS_EXTRAS_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS_FERIADO",
+        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
     ]
 
     def __init__(self):
@@ -54,6 +70,9 @@ class ControladorHistorico:
 
         for column in self.NUMERIC_COLUMNS:
             historico_df[column] = pd.to_numeric(historico_df[column], errors="coerce")
+
+        for column in self.HOUR_COLUMNS:
+            historico_df[column] = historico_df[column].astype(float)
 
         historico_df = historico_df[self.REQUIRED_COLUMNS]
 
@@ -91,8 +110,11 @@ class ControladorHistorico:
             "IMPORTE",
             "HORAS_TRABAJADAS",
             "HORAS_NORMALES_DIURNAS",
-            "HORAS_EXTRAS_NORMALES",
-            "HORAS_NOCTURNAS",
+            "HORAS_NORMALES_NOCTURNAS",
+            "HORAS_EXTRAS_DIURNAS",
+            "HORAS_EXTRAS_NOCTURNAS",
+            "HORAS_EXTRAS_DIURNAS_FERIADO",
+            "HORAS_EXTRAS_NOCTURNAS_FERIADO",
         ]
 
         updates = records_df.set_index("ID")
