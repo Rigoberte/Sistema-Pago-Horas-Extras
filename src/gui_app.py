@@ -373,6 +373,7 @@ class HorasExtrasGUI:
             ("feriados", "Feriados"),
             ("validacion", "Validación"),
             ("reportes", "Reportes"),
+            ("sincronizacion", "Sincronización"),
         ]
 
         for key, text in nav_items:
@@ -395,11 +396,13 @@ class HorasExtrasGUI:
         self.views["feriados"] = ttk.Frame(self.content, style="Content.TFrame")
         self.views["validacion"] = ttk.Frame(self.content, style="Content.TFrame")
         self.views["reportes"] = ttk.Frame(self.content, style="Content.TFrame")
+        self.views["sincronizacion"] = ttk.Frame(self.content, style="Content.TFrame")
 
         self._build_empleados_view()
         self._build_feriados_view()
         self._build_validacion_view()
         self._build_reportes_view()
+        self._build_sincronizacion_view()
 
     def _show_view(self, view_name):
         self.current_view = view_name
@@ -1263,6 +1266,29 @@ class HorasExtrasGUI:
             command=self.clear_reportes_filters
         ).pack(side="left")
 
+    def _build_sincronizacion_view(self):
+        parent = self.views["sincronizacion"]
+
+        _, card = self._create_card(parent, "Sincronización")
+        ttk.Label(
+            card,
+            text="Exportar genera un único Excel con hojas de Historico, Empleados y Feriados. Importar reemplaza los archivos locales con ese archivo.",
+            style="SectionLabel.TLabel",
+            wraplength=920,
+            justify="left",
+        ).pack(anchor="w", pady=(0, 12))
+
+        actions = ttk.Frame(card, style="Card.TFrame")
+        actions.pack(anchor="w")
+
+        ttk.Button(actions, text="Exportar", style="Success.TButton", command=self.export_sync_package).pack(side="left", padx=(0, 10))
+        ttk.Button(actions, text="Importar", style="Primary.TButton", command=self.import_sync_package).pack(side="left")
+
+        self.sync_status_var = tk.StringVar(
+            value="Se usa un solo archivo .xlsx con tres hojas para mover la información entre dos computadoras offline."
+        )
+        ttk.Label(card, textvariable=self.sync_status_var, style="SectionLabel.TLabel", wraplength=920, justify="left").pack(anchor="w", pady=(16, 0))
+
     # =========================
     # DATOS / TABLA
     # =========================
@@ -1373,6 +1399,65 @@ class HorasExtrasGUI:
         if isinstance(value, float):
             return f"{value:.2f}"
         return str(value)
+
+    def _export_sync_package(self, export_path: str):
+        historico_df = self.workflow.historico.read()
+        empleados_df = self.datos_empleados.read()
+        feriados_df = self.feriados_reader.read()
+
+        with pd.ExcelWriter(export_path, engine="openpyxl") as writer:
+            historico_df.to_excel(writer, sheet_name="Historico", index=False)
+            empleados_df.to_excel(writer, sheet_name="Empleados", index=False)
+            feriados_df.to_excel(writer, sheet_name="Feriados", index=False)
+
+    def export_sync_package(self):
+        export_path = filedialog.asksaveasfilename(
+            title="Exportar sincronización",
+            defaultextension=".xlsx",
+            filetypes=[("Excel", "*.xlsx")],
+            initialfile="SincronizacionSistemaPagoHorasExtras.xlsx",
+        )
+        if not export_path:
+            return
+
+        try:
+            self._export_sync_package(export_path)
+            messagebox.showinfo("Sincronización", "Archivo exportado correctamente.")
+        except Exception as exc:
+            messagebox.showerror("Sincronización", f"No se pudo exportar: {exc}")
+
+    def _import_sync_package(self, import_path: str):
+        sheets = pd.read_excel(import_path, sheet_name=None)
+
+        required_sheets = {
+            "Historico": self.workflow.historico.excel_path,
+            "Empleados": self.datos_empleados.excel_path,
+            "Feriados": self.feriados_reader.excel_path,
+        }
+
+        missing = [sheet_name for sheet_name in required_sheets if sheet_name not in sheets]
+        if missing:
+            raise ValueError("Faltan hojas obligatorias en el archivo: " + ", ".join(missing))
+
+        for sheet_name, local_path in required_sheets.items():
+            sheets[sheet_name].to_excel(local_path, index=False)
+
+    def import_sync_package(self):
+        import_path = filedialog.askopenfilename(
+            title="Importar sincronización",
+            filetypes=[("Excel", "*.xlsx")],
+        )
+        if not import_path:
+            return
+
+        try:
+            self._import_sync_package(import_path)
+            self.load_historico_with_current_filters()
+            self.refresh_empleados_table()
+            self.refresh_feriados_table()
+            messagebox.showinfo("Sincronización", "Archivo importado y datos locales reemplazados correctamente.")
+        except Exception as exc:
+            messagebox.showerror("Sincronización", f"No se pudo importar: {exc}")
 
     # =========================
     # EVENTOS
