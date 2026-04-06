@@ -1,10 +1,10 @@
 import pandas as pd
-import datetime
+from pathlib import Path
 
 class FeriadosReader:
     def __init__(self):
-        folder_path = r"C:\Users\inaki.costa\Downloads\GitHub_Repositories\Sistema-Pago-Horas-Extras\data"
-        self.excel_path = folder_path + r"\Feriados.xlsx"
+        folder_path = Path(__file__).resolve().parent.parent / "data"
+        self.excel_path = str(folder_path / "Feriados.xlsx")
 
     def read(self) -> pd.DataFrame:
         feriados_df = pd.read_excel(self.excel_path)

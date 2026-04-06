@@ -7,6 +7,7 @@ import pandas as pd
 
 from src.datos_empleados_reader import DatosEmpleados
 from src.feriados import FeriadosReader
+from src.time_utils import round_timestamp_to_nearest_half_hour
 from src.workflow_service import HorasExtrasWorkflowService
 
 
@@ -1033,7 +1034,7 @@ class HorasExtrasGUI:
         ):
             parsed = pd.to_datetime(value, format=fmt, errors="coerce")
             if not pd.isna(parsed):
-                return parsed
+                return round_timestamp_to_nearest_half_hour(parsed)
 
         raise ValueError(
             f"Formato invalido para {field_name}. Usa dd/mm/yyyy hh:mm o yyyy-mm-dd hh:mm."

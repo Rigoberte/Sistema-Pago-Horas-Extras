@@ -1,4 +1,5 @@
 import pandas as pd
+from pathlib import Path
 
 class DatosEmpleados:
     REQUIRED_COLUMNS = [
@@ -8,8 +9,8 @@ class DatosEmpleados:
     ]
 
     def __init__(self):
-        folder_path = r"C:\Users\inaki.costa\Downloads\GitHub_Repositories\Sistema-Pago-Horas-Extras\data"
-        self.excel_path = folder_path + r"\DatosEmpleados.xlsx"
+        folder_path = Path(__file__).resolve().parent.parent / "data"
+        self.excel_path = str(folder_path / "DatosEmpleados.xlsx")
 
     def read(self) -> pd.DataFrame:
         datos_empleados_df = pd.read_excel(self.excel_path)

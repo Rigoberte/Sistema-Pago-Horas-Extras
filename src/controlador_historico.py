@@ -1,5 +1,6 @@
 import pandas as pd
 import uuid
+from pathlib import Path
 
 
 class ControladorHistorico:
@@ -35,8 +36,8 @@ class ControladorHistorico:
     ]
 
     def __init__(self):
-        folder_path = r"C:\Users\inaki.costa\Downloads\GitHub_Repositories\Sistema-Pago-Horas-Extras\data"
-        self.excel_path = folder_path + r"\Historico.xlsx"
+        folder_path = Path(__file__).resolve().parent.parent / "data"
+        self.excel_path = str(folder_path / "Historico.xlsx")
 
     def read(self) -> pd.DataFrame:
         historico_df = pd.read_excel(self.excel_path)

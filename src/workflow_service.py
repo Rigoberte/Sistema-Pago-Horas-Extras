@@ -4,6 +4,7 @@ from src.Qontact_report_reader import ReporteHorasExtras
 from src.controlador_historico import ControladorHistorico
 from src.datos_empleados_reader import DatosEmpleados
 from src.separador_de_jornales import SeparadorDeJornales
+from src.time_utils import round_timestamp_to_nearest_half_hour
 
 
 class HorasExtrasWorkflowService:
@@ -121,6 +122,10 @@ class HorasExtrasWorkflowService:
         return preview_df[self.TABLE_COLUMNS]
 
     def build_manual_record(self, row_data: dict) -> pd.DataFrame:
+        row_data = row_data.copy()
+        row_data["INGRESO"] = round_timestamp_to_nearest_half_hour(pd.to_datetime(row_data["INGRESO"]))
+        row_data["EGRESO"] = round_timestamp_to_nearest_half_hour(pd.to_datetime(row_data["EGRESO"]))
+
         base_df = pd.DataFrame([row_data])
         base_df["NOMBRE_Y_APELLIDO"] = base_df["NOMBRE_Y_APELLIDO"].astype(str).str.strip().str.upper()
 

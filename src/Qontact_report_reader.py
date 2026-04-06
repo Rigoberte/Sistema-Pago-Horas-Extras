@@ -1,5 +1,7 @@
 import pandas as pd
 
+from src.time_utils import round_timestamp_to_nearest_half_hour
+
 class ReporteHorasExtras:
     def read(self, excel_path: str) -> pd.DataFrame:
         reporte_horas_extras_df = pd.read_excel(excel_path)
@@ -48,5 +50,9 @@ class ReporteHorasExtras:
         parsed = pd.to_datetime(values, format="%H:%M:%S", errors="coerce")
         parsed = parsed.fillna(pd.to_datetime(values, format="%H:%M", errors="coerce"))
         parsed = parsed.fillna(pd.to_datetime(values, format="%H", errors="coerce"))
+
+        # Ajusta cada hora al bloque de 30 minutos mas cercano.
+        valid_mask = parsed.notna()
+        parsed.loc[valid_mask] = parsed.loc[valid_mask].apply(round_timestamp_to_nearest_half_hour)
 
         return parsed.dt.time
