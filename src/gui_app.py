@@ -20,6 +20,7 @@ class HorasExtrasGUI:
     EDITABLE_COLUMNS = {
         "COMENTARIOS",
         "VALOR_HS_JORNAL",
+        "EDIFICIO",
         "HORAS_TRABAJADAS",
         "HORAS_NORMALES_DIURNAS",
         "HORAS_NORMALES_NOCTURNAS",
@@ -40,7 +41,7 @@ class HorasExtrasGUI:
 
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Sistema de Pago de Horas Extras")
+        self.root.title("RRHH Melo")
         self.root.geometry("1450x820")
         self.root.minsize(1200, 720)
         self.root.configure(bg="#eef2f7")
@@ -350,7 +351,7 @@ class HorasExtrasGUI:
 
         ttk.Label(
             self.header_frame,
-            text="Sistema de Pago de Horas Extras",
+            text="RRHH Melo",
             style="Header.TLabel"
         ).pack(side="left", padx=20, pady=12)
 
@@ -450,6 +451,7 @@ class HorasExtrasGUI:
         self.emp_nombre_var = tk.StringVar()
         self.emp_valor_hs_jornal_var = tk.StringVar()
         self.emp_hs_jornal_var = tk.StringVar()
+        self.emp_tipo_empleado_var = tk.StringVar(value="Temporal")
         self.emp_ignorar_periodo_nocturno_var = tk.StringVar(value="False")
 
         ttk.Label(form, text="Nombre", style="SectionLabel.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
@@ -461,17 +463,26 @@ class HorasExtrasGUI:
         ttk.Label(form, text="Hs jornal", style="SectionLabel.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
         ttk.Entry(form, textvariable=self.emp_hs_jornal_var, width=22).grid(row=1, column=1, sticky="w", pady=4)
 
-        ttk.Label(form, text="Ignorar periodo nocturno", style="SectionLabel.TLabel").grid(row=1, column=2, sticky="w", padx=(18, 8), pady=4)
+        ttk.Label(form, text="Tipo de empleado", style="SectionLabel.TLabel").grid(row=1, column=2, sticky="w", padx=(18, 8), pady=4)
+        ttk.Combobox(
+            form,
+            textvariable=self.emp_tipo_empleado_var,
+            values=["Temporal", "Permanente"],
+            state="readonly",
+            width=19,
+        ).grid(row=1, column=3, sticky="w", pady=4)
+
+        ttk.Label(form, text="Ignorar periodo nocturno", style="SectionLabel.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
         ttk.Combobox(
             form,
             textvariable=self.emp_ignorar_periodo_nocturno_var,
             values=["False", "True"],
             state="readonly",
             width=19,
-        ).grid(row=1, column=3, sticky="w", pady=4)
+        ).grid(row=2, column=1, sticky="w", pady=4)
 
         actions = ttk.Frame(form, style="Card.TFrame")
-        actions.grid(row=0, column=4, rowspan=2, padx=(20, 0), sticky="e")
+        actions.grid(row=0, column=4, rowspan=3, padx=(20, 0), sticky="e")
         form.columnconfigure(4, weight=1)
 
         ttk.Button(actions, text="Agregar", style="SmallPrimary.TButton", command=self.add_empleado).grid(row=0, column=0, padx=(0, 8), pady=(0, 8), sticky="ew")
@@ -479,7 +490,7 @@ class HorasExtrasGUI:
         ttk.Button(actions, text="Actualizar", style="SmallSuccess.TButton", command=self.update_empleado).grid(row=1, column=0, padx=(0, 8), sticky="ew")
         ttk.Button(actions, text="Limpiar", style="SmallClean.TButton", command=self.clear_empleado_form).grid(row=1, column=1, sticky="ew")
 
-        columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL", "IGNORAR_PERIODO_NOCTURNO")
+        columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL", "TIPO_EMPLEADO", "IGNORAR_PERIODO_NOCTURNO")
         self.empleados_tree = ttk.Treeview(card, columns=columns, show="headings", height=12)
         self.empleados_tree.pack(fill="x")
         self.empleados_tree.bind("<<TreeviewSelect>>", self.on_empleado_selected)
@@ -488,6 +499,7 @@ class HorasExtrasGUI:
             "NOMBRE_Y_APELLIDO": 320,
             "VALOR_HS_JORNAL": 180,
             "HS_JORNAL": 140,
+            "TIPO_EMPLEADO": 160,
             "IGNORAR_PERIODO_NOCTURNO": 220,
         }
 
@@ -522,7 +534,7 @@ class HorasExtrasGUI:
             feriado_fecha_frame,
             text="📅",
             style="CalendarIcon.TButton",
-            command=lambda: self._open_date_picker(self.feriado_fecha_var),
+            command=lambda widget=feriado_fecha_frame: self._open_date_picker(self.feriado_fecha_var, widget),
         ).pack(side="left", padx=(6, 0))
 
         ttk.Label(form, text="Descripción:", style="SectionLabel.TLabel").grid(row=0, column=2, sticky="w", padx=(20, 8), pady=4)
@@ -591,6 +603,7 @@ class HorasExtrasGUI:
                     str(row.get("NOMBRE_Y_APELLIDO", "")),
                     self._display_value(row.get("VALOR_HS_JORNAL", "")),
                     self._display_value(row.get("HS_JORNAL", "")),
+                    str(row.get("TIPO_EMPLEADO", "Temporal") or "Temporal"),
                     str(bool(row.get("IGNORAR_PERIODO_NOCTURNO", False))),
                 ),
             )
@@ -608,13 +621,15 @@ class HorasExtrasGUI:
         self.emp_nombre_var.set(str(values[0]))
         self.emp_valor_hs_jornal_var.set(str(values[1]))
         self.emp_hs_jornal_var.set(str(values[2]))
-        self.emp_ignorar_periodo_nocturno_var.set(str(values[3]))
+        self.emp_tipo_empleado_var.set(str(values[3]) if str(values[3]).strip() else "Temporal")
+        self.emp_ignorar_periodo_nocturno_var.set(str(values[4]))
 
     def clear_empleado_form(self):
         self.selected_empleado_nombre = ""
         self.emp_nombre_var.set("")
         self.emp_valor_hs_jornal_var.set("")
         self.emp_hs_jornal_var.set("")
+        self.emp_tipo_empleado_var.set("Temporal")
         self.emp_ignorar_periodo_nocturno_var.set("False")
 
     def add_empleado(self):
@@ -625,9 +640,10 @@ class HorasExtrasGUI:
 
             valor_hs_jornal = self._parse_float(self.emp_valor_hs_jornal_var.get(), "valor hs jornal")
             hs_jornal = self._parse_float(self.emp_hs_jornal_var.get(), "hs jornal")
+            tipo_empleado = (self.emp_tipo_empleado_var.get() or "Temporal").strip()
             ignorar_periodo_nocturno = self.emp_ignorar_periodo_nocturno_var.get() == "True"
 
-            self.datos_empleados.add_employee(nombre, valor_hs_jornal, hs_jornal, ignorar_periodo_nocturno)
+            self.datos_empleados.add_employee(nombre, valor_hs_jornal, hs_jornal, ignorar_periodo_nocturno, tipo_empleado)
             self.refresh_empleados_table()
             self.clear_empleado_form()
             messagebox.showinfo("Empleados", "Empleado agregado correctamente.")
@@ -648,6 +664,7 @@ class HorasExtrasGUI:
 
             valor_hs_jornal = self._parse_float(self.emp_valor_hs_jornal_var.get(), "valor hs jornal")
             hs_jornal = self._parse_float(self.emp_hs_jornal_var.get(), "hs jornal")
+            tipo_empleado = (self.emp_tipo_empleado_var.get() or "Temporal").strip()
             ignorar_periodo_nocturno = self.emp_ignorar_periodo_nocturno_var.get() == "True"
 
             self.datos_empleados.update_employee_data(
@@ -655,6 +672,7 @@ class HorasExtrasGUI:
                 valor_hs_jornal,
                 hs_jornal,
                 ignorar_periodo_nocturno,
+                tipo_empleado,
             )
             self.refresh_empleados_table()
             messagebox.showinfo("Empleados", "Empleado actualizado correctamente.")
@@ -846,7 +864,7 @@ class HorasExtrasGUI:
             desde_frame,
             text="📅",
             style="CalendarIcon.TButton",
-            command=lambda: self._open_date_picker(self.fecha_desde_var),
+            command=lambda widget=desde_frame: self._open_date_picker(self.fecha_desde_var, widget),
         ).pack(side="left", padx=(6, 0))
 
         ttk.Label(card, text="Hasta", style="SectionLabel.TLabel").grid(row=0, column=6, sticky="w", padx=(12, 8), pady=4)
@@ -858,7 +876,7 @@ class HorasExtrasGUI:
             hasta_frame,
             text="📅",
             style="CalendarIcon.TButton",
-            command=lambda: self._open_date_picker(self.fecha_hasta_var),
+            command=lambda widget=hasta_frame: self._open_date_picker(self.fecha_hasta_var, widget),
         ).pack(side="left", padx=(6, 0))
 
         actions = ttk.Frame(card, style="Card.TFrame")
@@ -961,7 +979,7 @@ class HorasExtrasGUI:
             command=self.confirm_loaded
         ).pack(side="right", padx=(10, 0))
 
-    def _open_date_picker(self, target_var: tk.StringVar):
+    def _open_date_picker(self, target_var: tk.StringVar, anchor_widget: tk.Widget | None = None):
         popup = tk.Toplevel(self.root)
         popup.title("Seleccionar fecha")
         popup.resizable(False, False)
@@ -1057,6 +1075,30 @@ class HorasExtrasGUI:
 
         render_calendar()
 
+        popup.update_idletasks()
+
+        if anchor_widget is not None:
+            popup_width = popup.winfo_reqwidth()
+            popup_height = popup.winfo_reqheight()
+            anchor_x = anchor_widget.winfo_rootx()
+            anchor_y = anchor_widget.winfo_rooty()
+            anchor_height = anchor_widget.winfo_height()
+
+            x = anchor_x
+            y = anchor_y + anchor_height + 6
+
+            vroot_x = popup.winfo_vrootx()
+            vroot_y = popup.winfo_vrooty()
+            vroot_right = vroot_x + popup.winfo_vrootwidth()
+            vroot_bottom = vroot_y + popup.winfo_vrootheight()
+
+            if x + popup_width > vroot_right:
+                x = max(vroot_x, vroot_right - popup_width)
+            if y + popup_height > vroot_bottom:
+                y = max(vroot_y, anchor_y - popup_height - 6)
+
+            popup.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
+
     def _parse_datetime_input(self, raw_value: str, field_name: str) -> pd.Timestamp:
         value = (raw_value or "").strip()
         if not value:
@@ -1101,6 +1143,8 @@ class HorasExtrasGUI:
             if not nombre:
                 raise ValueError("El campo 'nombre' es obligatorio.")
 
+            edificio = (self.manual_fields["EDIFICIO"].get() or "").strip()
+
             ingreso = self._parse_datetime_input(self.manual_fields["INGRESO"].get(), "ingreso")
             egreso = self._parse_datetime_input(self.manual_fields["EGRESO"].get(), "egreso")
             if egreso <= ingreso:
@@ -1112,6 +1156,7 @@ class HorasExtrasGUI:
                 "ID": "",
                 "ROW_STATUS": "NO_CONFIRMADO",
                 "NOMBRE_Y_APELLIDO": nombre,
+                "EDIFICIO": edificio,
                 "INGRESO": ingreso,
                 "EGRESO": egreso,
                 "COMENTARIOS": comentarios,
@@ -1149,6 +1194,7 @@ class HorasExtrasGUI:
 
         self.manual_fields = {
             "NOMBRE_Y_APELLIDO": tk.StringVar(),
+            "EDIFICIO": tk.StringVar(),
             "INGRESO": tk.StringVar(),
             "EGRESO": tk.StringVar(),
             "COMENTARIOS": tk.StringVar(),
@@ -1156,6 +1202,7 @@ class HorasExtrasGUI:
 
         labels = [
             ("Nombre", "NOMBRE_Y_APELLIDO"),
+            ("Edificio", "EDIFICIO"),
             ("Ingreso (dd/mm/yyyy hh:mm)", "INGRESO"),
             ("Egreso (dd/mm/yyyy hh:mm)", "EGRESO"),
             ("Comentarios", "COMENTARIOS"),
@@ -1234,7 +1281,7 @@ class HorasExtrasGUI:
             reporte_desde_frame,
             text="📅",
             style="CalendarIcon.TButton",
-            command=lambda: self._open_date_picker(self.reporte_desde_var),
+            command=lambda widget=reporte_desde_frame: self._open_date_picker(self.reporte_desde_var, widget),
         ).pack(side="left", padx=(6, 0))
 
         ttk.Label(period_row, text="Hasta:", style="SectionLabel.TLabel").pack(side="left", padx=(30, 4))
@@ -1247,7 +1294,7 @@ class HorasExtrasGUI:
             reporte_hasta_frame,
             text="📅",
             style="CalendarIcon.TButton",
-            command=lambda: self._open_date_picker(self.reporte_hasta_var),
+            command=lambda widget=reporte_hasta_frame: self._open_date_picker(self.reporte_hasta_var, widget),
         ).pack(side="left", padx=(6, 0))
 
         acciones_reporte = ttk.Frame(card, style="Card.TFrame")
@@ -1410,6 +1457,14 @@ class HorasExtrasGUI:
             empleados_df.to_excel(writer, sheet_name="Empleados", index=False)
             feriados_df.to_excel(writer, sheet_name="Feriados", index=False)
 
+    @staticmethod
+    def _ensure_sync_columns(df: pd.DataFrame, required_columns: list[str], default_text_columns: set[str]) -> pd.DataFrame:
+        normalized_df = df.copy()
+        for column_name in required_columns:
+            if column_name not in normalized_df.columns:
+                normalized_df[column_name] = "" if column_name in default_text_columns else 0
+        return normalized_df[required_columns]
+
     def export_sync_package(self):
         export_path = filedialog.asksaveasfilename(
             title="Exportar sincronización",
@@ -1438,6 +1493,17 @@ class HorasExtrasGUI:
         missing = [sheet_name for sheet_name in required_sheets if sheet_name not in sheets]
         if missing:
             raise ValueError("Faltan hojas obligatorias en el archivo: " + ", ".join(missing))
+
+        sheets["Historico"] = self._ensure_sync_columns(
+            sheets["Historico"],
+            self.workflow.historico.REQUIRED_COLUMNS,
+            {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "TIPO_EMPLEADO", "EDIFICIO", "COMENTARIOS"},
+        )
+        sheets["Empleados"] = self._ensure_sync_columns(
+            sheets["Empleados"],
+            self.datos_empleados.REQUIRED_COLUMNS,
+            {"NOMBRE_Y_APELLIDO", "TIPO_EMPLEADO"},
+        )
 
         for sheet_name, local_path in required_sheets.items():
             sheets[sheet_name].to_excel(local_path, index=False)

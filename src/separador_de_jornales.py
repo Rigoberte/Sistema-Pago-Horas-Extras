@@ -115,6 +115,7 @@ class SeparadorDeJornales:
 
         print(reporte_horas_extras_df[[
             "NOMBRE_Y_APELLIDO",
+            "EDIFICIO",
             "INGRESO",
             "EGRESO",
             "HORAS_TRABAJADAS",

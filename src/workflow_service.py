@@ -15,10 +15,32 @@ class HorasExtrasWorkflowService:
     MULTIPLIER_HORAS_EXTRAS_DIURNAS_FERIADO = 2.0
     MULTIPLIER_HORAS_EXTRAS_NOCTURNAS_FERIADO = 2.1333
 
+    REPORT_COLUMNS = [
+        "ID",
+        "ROW_STATUS",
+        "NOMBRE_Y_APELLIDO",
+        "TIPO_EMPLEADO",
+        "EDIFICIO",
+        "INGRESO",
+        "EGRESO",
+        "COMENTARIOS",
+        "VALOR_HS_JORNAL",
+        "IMPORTE",
+        "HORAS_TRABAJADAS",
+        "HORAS_NORMALES_DIURNAS",
+        "HORAS_NORMALES_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS",
+        "HORAS_EXTRAS_NOCTURNAS",
+        "HORAS_EXTRAS_DIURNAS_FERIADO",
+        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+    ]
+
     TABLE_COLUMNS = [
         "ID",
         "ROW_STATUS",
         "NOMBRE_Y_APELLIDO",
+        "TIPO_EMPLEADO",
+        "EDIFICIO",
         "INGRESO",
         "EGRESO",
         "COMENTARIOS",
@@ -88,7 +110,7 @@ class HorasExtrasWorkflowService:
 
         report_columns = [
             column_name
-            for column_name in self.TABLE_COLUMNS
+            for column_name in self.REPORT_COLUMNS
             if column_name not in {"ID", "ROW_STATUS"}
         ]
 
@@ -123,6 +145,10 @@ class HorasExtrasWorkflowService:
         if "COMENTARIOS" not in preview_df.columns:
             preview_df["COMENTARIOS"] = ""
 
+        for column_name in self.TABLE_COLUMNS:
+            if column_name not in preview_df.columns:
+                preview_df[column_name] = "" if column_name in {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "TIPO_EMPLEADO", "EDIFICIO", "COMENTARIOS"} else 0.0
+
         preview_df = self.recalculate_importes(preview_df)
 
         return preview_df[self.TABLE_COLUMNS]
@@ -143,6 +169,10 @@ class HorasExtrasWorkflowService:
 
         if "COMENTARIOS" not in preview_df.columns:
             preview_df["COMENTARIOS"] = ""
+
+        for column_name in self.TABLE_COLUMNS:
+            if column_name not in preview_df.columns:
+                preview_df[column_name] = "" if column_name in {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "TIPO_EMPLEADO", "EDIFICIO", "COMENTARIOS"} else 0.0
 
         return preview_df[self.TABLE_COLUMNS]
 
@@ -252,7 +282,7 @@ class HorasExtrasWorkflowService:
         if result_df.empty:
             for column in self.TABLE_COLUMNS:
                 if column not in result_df.columns:
-                    result_df[column] = "" if column in {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "COMENTARIOS"} else 0.0
+                    result_df[column] = "" if column in {"ID", "ROW_STATUS", "NOMBRE_Y_APELLIDO", "TIPO_EMPLEADO", "EDIFICIO", "COMENTARIOS"} else 0.0
             return result_df
 
         hour_columns = [

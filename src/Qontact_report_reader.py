@@ -8,6 +8,7 @@ class ReporteHorasExtras:
 
         columns_rename = {
             "NOMBRE Y APELLIDO": "NOMBRE_Y_APELLIDO",
+            "edificio": "EDIFICIO",
             "DESDE": "FECHA_INGRESO",
             "HASTA": "FECHA_EGRESO",
             "INGRESO": "HORA_INGRESO",

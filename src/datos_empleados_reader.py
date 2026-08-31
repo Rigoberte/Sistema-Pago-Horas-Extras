@@ -7,6 +7,7 @@ class DatosEmpleados:
         "VALOR_HS_JORNAL",
         "HS_JORNAL",
         "IGNORAR_PERIODO_NOCTURNO",
+        "TIPO_EMPLEADO",
     ]
 
     def __init__(self):
@@ -28,8 +29,16 @@ class DatosEmpleados:
 
         datos_empleados_df = datos_empleados_df[self.REQUIRED_COLUMNS]
 
-        datos_empleados_df["NOMBRE_Y_APELLIDO"] = datos_empleados_df["NOMBRE_Y_APELLIDO"].str.strip().str.upper()
+        datos_empleados_df["NOMBRE_Y_APELLIDO"] = datos_empleados_df["NOMBRE_Y_APELLIDO"].fillna("").astype(str).str.strip().str.upper()
         datos_empleados_df["IGNORAR_PERIODO_NOCTURNO"] = datos_empleados_df["IGNORAR_PERIODO_NOCTURNO"].apply(self._to_bool)
+        datos_empleados_df["TIPO_EMPLEADO"] = (
+            datos_empleados_df["TIPO_EMPLEADO"]
+            .fillna("Temporal")
+            .astype(str)
+            .str.strip()
+            .replace("", "Temporal")
+            .str.upper()
+        )
 
         return datos_empleados_df
 
@@ -47,7 +56,7 @@ class DatosEmpleados:
             return False
         return False
     
-    def add_employee(self, nombre_y_apellido: str, valor_hs_jornal: float, hs_jornal: float, ignorar_periodo_nocturno: bool = False):
+    def add_employee(self, nombre_y_apellido: str, valor_hs_jornal: float, hs_jornal: float, ignorar_periodo_nocturno: bool = False, tipo_empleado: str = ""):
         df = self.read()
         
         nuevo_empleado = {
@@ -55,12 +64,13 @@ class DatosEmpleados:
             "VALOR_HS_JORNAL": valor_hs_jornal,
             "HS_JORNAL": hs_jornal,
             "IGNORAR_PERIODO_NOCTURNO": bool(ignorar_periodo_nocturno),
+            "TIPO_EMPLEADO": tipo_empleado.strip().upper(),
         }
 
         if df["NOMBRE_Y_APELLIDO"].str.upper().str.strip().eq(nuevo_empleado["NOMBRE_Y_APELLIDO"]).any():
             raise ValueError(f"El empleado '{nombre_y_apellido}' ya existe en el sistema.")
 
-        df = df.append(nuevo_empleado, ignore_index=True)
+        df = pd.concat([df, pd.DataFrame([nuevo_empleado])], ignore_index=True)
 
         df.to_excel(self.excel_path, index=False)
     
@@ -70,17 +80,19 @@ class DatosEmpleados:
         valor_hs_jornal: float,
         hs_jornal: float,
         ignorar_periodo_nocturno: bool = False,
+        tipo_empleado: str = ""
     ):
         df = self.read()
         
         if not df.loc[df["NOMBRE_Y_APELLIDO"] == nombre_y_apellido].empty:
             df.loc[
                 df["NOMBRE_Y_APELLIDO"] == nombre_y_apellido,
-                ["VALOR_HS_JORNAL", "HS_JORNAL", "IGNORAR_PERIODO_NOCTURNO"],
+                ["VALOR_HS_JORNAL", "HS_JORNAL", "IGNORAR_PERIODO_NOCTURNO", "TIPO_EMPLEADO"],
             ] = [
                 valor_hs_jornal,
                 hs_jornal,
                 bool(ignorar_periodo_nocturno),
+                tipo_empleado.strip().upper(),
             ]
         else:
             raise ValueError(f"El empleado '{nombre_y_apellido}' no existe en el sistema.")

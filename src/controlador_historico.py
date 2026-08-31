@@ -8,6 +8,8 @@ class ControladorHistorico:
         "ID",
         "ROW_STATUS",
         "NOMBRE_Y_APELLIDO",
+        "TIPO_EMPLEADO",
+        "EDIFICIO",
         "INGRESO",
         "EGRESO",
         "COMENTARIOS",
@@ -26,6 +28,8 @@ class ControladorHistorico:
         "ID",
         "ROW_STATUS",
         "NOMBRE_Y_APELLIDO",
+        "TIPO_EMPLEADO",
+        "EDIFICIO",
         "COMENTARIOS",
     ]
 
@@ -68,6 +72,14 @@ class ControladorHistorico:
         for column in self.TEXT_COLUMNS:
             historico_df[column] = historico_df[column].fillna("").astype(str)
 
+        historico_df["TIPO_EMPLEADO"] = (
+            historico_df["TIPO_EMPLEADO"]
+            .replace("", "Temporal")
+            .str.strip()
+            .replace("", "Temporal")
+            .str.upper()
+        )
+
         for column in self.NUMERIC_COLUMNS:
             historico_df[column] = pd.to_numeric(historico_df[column], errors="coerce")
 
@@ -107,7 +119,7 @@ class ControladorHistorico:
         editable_columns = [
             "COMENTARIOS",
             "VALOR_HS_JORNAL",
-            "IMPORTE",
+            "EDIFICIO",
             "HORAS_TRABAJADAS",
             "HORAS_NORMALES_DIURNAS",
             "HORAS_NORMALES_NOCTURNAS",
