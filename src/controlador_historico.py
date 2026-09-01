@@ -16,12 +16,9 @@ class ControladorHistorico:
         "VALOR_HS_JORNAL",
         "IMPORTE",
         "HORAS_TRABAJADAS",
-        "HORAS_NORMALES_DIURNAS",
-        "HORAS_NORMALES_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS",
-        "HORAS_EXTRAS_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS_FERIADO",
-        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+        "HORAS_NORMALES",
+        "HORAS_EXTRAS_50",
+        "HORAS_EXTRAS_100",
     ]
 
     TEXT_COLUMNS = [
@@ -37,22 +34,16 @@ class ControladorHistorico:
         "VALOR_HS_JORNAL",
         "IMPORTE",
         "HORAS_TRABAJADAS",
-        "HORAS_NORMALES_DIURNAS",
-        "HORAS_NORMALES_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS",
-        "HORAS_EXTRAS_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS_FERIADO",
-        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+        "HORAS_NORMALES",
+        "HORAS_EXTRAS_50",
+        "HORAS_EXTRAS_100",
     ]
 
     HOUR_COLUMNS = [
         "HORAS_TRABAJADAS",
-        "HORAS_NORMALES_DIURNAS",
-        "HORAS_NORMALES_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS",
-        "HORAS_EXTRAS_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS_FERIADO",
-        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+        "HORAS_NORMALES",
+        "HORAS_EXTRAS_50",
+        "HORAS_EXTRAS_100",
     ]
 
     def __init__(self):
@@ -61,6 +52,22 @@ class ControladorHistorico:
 
     def read(self) -> pd.DataFrame:
         historico_df = pd.read_excel(self.excel_path)
+
+        legacy_columns = {
+            "HORAS_NORMALES_DIURNAS": "HORAS_NORMALES",
+            "HORAS_NORMALES_NOCTURNAS": "HORAS_NORMALES",
+            "HORAS_EXTRAS_DIURNAS": "HORAS_EXTRAS_50",
+            "HORAS_EXTRAS_NOCTURNAS": "HORAS_EXTRAS_50",
+            "HORAS_EXTRAS_DIURNAS_FERIADO": "HORAS_EXTRAS_100",
+            "HORAS_EXTRAS_NOCTURNAS_FERIADO": "HORAS_EXTRAS_100",
+        }
+        for legacy_column, new_column in legacy_columns.items():
+            if legacy_column in historico_df.columns:
+                if new_column not in historico_df.columns:
+                    historico_df[new_column] = 0.0
+                historico_df[new_column] = pd.to_numeric(historico_df.get(new_column, 0.0), errors="coerce").fillna(0.0)
+                valores_legacy = pd.to_numeric(historico_df[legacy_column], errors="coerce").fillna(0.0)
+                historico_df[new_column] = historico_df[new_column].combine_first(valores_legacy)
 
         for column in self.REQUIRED_COLUMNS:
             if column not in historico_df.columns:
@@ -121,12 +128,9 @@ class ControladorHistorico:
             "VALOR_HS_JORNAL",
             "EDIFICIO",
             "HORAS_TRABAJADAS",
-            "HORAS_NORMALES_DIURNAS",
-            "HORAS_NORMALES_NOCTURNAS",
-            "HORAS_EXTRAS_DIURNAS",
-            "HORAS_EXTRAS_NOCTURNAS",
-            "HORAS_EXTRAS_DIURNAS_FERIADO",
-            "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+            "HORAS_NORMALES",
+            "HORAS_EXTRAS_50",
+            "HORAS_EXTRAS_100",
         ]
 
         updates = records_df.set_index("ID")

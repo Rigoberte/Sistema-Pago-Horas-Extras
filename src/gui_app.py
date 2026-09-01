@@ -22,21 +22,15 @@ class HorasExtrasGUI:
         "VALOR_HS_JORNAL",
         "EDIFICIO",
         "HORAS_TRABAJADAS",
-        "HORAS_NORMALES_DIURNAS",
-        "HORAS_NORMALES_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS",
-        "HORAS_EXTRAS_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS_FERIADO",
-        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+        "HORAS_NORMALES",
+        "HORAS_EXTRAS_50",
+        "HORAS_EXTRAS_100",
     }
 
     HOUR_BREAKDOWN_COLUMNS = [
-        "HORAS_NORMALES_DIURNAS",
-        "HORAS_NORMALES_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS",
-        "HORAS_EXTRAS_NOCTURNAS",
-        "HORAS_EXTRAS_DIURNAS_FERIADO",
-        "HORAS_EXTRAS_NOCTURNAS_FERIADO",
+        "HORAS_NORMALES",
+        "HORAS_EXTRAS_50",
+        "HORAS_EXTRAS_100",
     ]
 
     def __init__(self):
@@ -452,7 +446,6 @@ class HorasExtrasGUI:
         self.emp_valor_hs_jornal_var = tk.StringVar()
         self.emp_hs_jornal_var = tk.StringVar()
         self.emp_tipo_empleado_var = tk.StringVar(value="Temporal")
-        self.emp_ignorar_periodo_nocturno_var = tk.StringVar(value="False")
 
         ttk.Label(form, text="Nombre", style="SectionLabel.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
         ttk.Entry(form, textvariable=self.emp_nombre_var, width=22).grid(row=0, column=1, sticky="w", pady=4)
@@ -472,15 +465,6 @@ class HorasExtrasGUI:
             width=19,
         ).grid(row=1, column=3, sticky="w", pady=4)
 
-        ttk.Label(form, text="Ignorar periodo nocturno", style="SectionLabel.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
-        ttk.Combobox(
-            form,
-            textvariable=self.emp_ignorar_periodo_nocturno_var,
-            values=["False", "True"],
-            state="readonly",
-            width=19,
-        ).grid(row=2, column=1, sticky="w", pady=4)
-
         actions = ttk.Frame(form, style="Card.TFrame")
         actions.grid(row=0, column=4, rowspan=3, padx=(20, 0), sticky="e")
         form.columnconfigure(4, weight=1)
@@ -490,7 +474,7 @@ class HorasExtrasGUI:
         ttk.Button(actions, text="Actualizar", style="SmallSuccess.TButton", command=self.update_empleado).grid(row=1, column=0, padx=(0, 8), sticky="ew")
         ttk.Button(actions, text="Limpiar", style="SmallClean.TButton", command=self.clear_empleado_form).grid(row=1, column=1, sticky="ew")
 
-        columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL", "TIPO_EMPLEADO", "IGNORAR_PERIODO_NOCTURNO")
+        columns = ("NOMBRE_Y_APELLIDO", "VALOR_HS_JORNAL", "HS_JORNAL", "TIPO_EMPLEADO")
         self.empleados_tree = ttk.Treeview(card, columns=columns, show="headings", height=12)
         self.empleados_tree.pack(fill="x")
         self.empleados_tree.bind("<<TreeviewSelect>>", self.on_empleado_selected)
@@ -499,8 +483,7 @@ class HorasExtrasGUI:
             "NOMBRE_Y_APELLIDO": 320,
             "VALOR_HS_JORNAL": 180,
             "HS_JORNAL": 140,
-            "TIPO_EMPLEADO": 160,
-            "IGNORAR_PERIODO_NOCTURNO": 220,
+            "TIPO_EMPLEADO": 200,
         }
 
         for col in columns:
@@ -604,7 +587,6 @@ class HorasExtrasGUI:
                     self._display_value(row.get("VALOR_HS_JORNAL", "")),
                     self._display_value(row.get("HS_JORNAL", "")),
                     str(row.get("TIPO_EMPLEADO", "Temporal") or "Temporal"),
-                    str(bool(row.get("IGNORAR_PERIODO_NOCTURNO", False))),
                 ),
             )
 
@@ -622,7 +604,6 @@ class HorasExtrasGUI:
         self.emp_valor_hs_jornal_var.set(str(values[1]))
         self.emp_hs_jornal_var.set(str(values[2]))
         self.emp_tipo_empleado_var.set(str(values[3]) if str(values[3]).strip() else "Temporal")
-        self.emp_ignorar_periodo_nocturno_var.set(str(values[4]))
 
     def clear_empleado_form(self):
         self.selected_empleado_nombre = ""
@@ -630,7 +611,6 @@ class HorasExtrasGUI:
         self.emp_valor_hs_jornal_var.set("")
         self.emp_hs_jornal_var.set("")
         self.emp_tipo_empleado_var.set("Temporal")
-        self.emp_ignorar_periodo_nocturno_var.set("False")
 
     def add_empleado(self):
         try:
@@ -641,9 +621,8 @@ class HorasExtrasGUI:
             valor_hs_jornal = self._parse_float(self.emp_valor_hs_jornal_var.get(), "valor hs jornal")
             hs_jornal = self._parse_float(self.emp_hs_jornal_var.get(), "hs jornal")
             tipo_empleado = (self.emp_tipo_empleado_var.get() or "Temporal").strip()
-            ignorar_periodo_nocturno = self.emp_ignorar_periodo_nocturno_var.get() == "True"
 
-            self.datos_empleados.add_employee(nombre, valor_hs_jornal, hs_jornal, ignorar_periodo_nocturno, tipo_empleado)
+            self.datos_empleados.add_employee(nombre, valor_hs_jornal, hs_jornal, False, tipo_empleado)
             self.refresh_empleados_table()
             self.clear_empleado_form()
             messagebox.showinfo("Empleados", "Empleado agregado correctamente.")
@@ -665,13 +644,12 @@ class HorasExtrasGUI:
             valor_hs_jornal = self._parse_float(self.emp_valor_hs_jornal_var.get(), "valor hs jornal")
             hs_jornal = self._parse_float(self.emp_hs_jornal_var.get(), "hs jornal")
             tipo_empleado = (self.emp_tipo_empleado_var.get() or "Temporal").strip()
-            ignorar_periodo_nocturno = self.emp_ignorar_periodo_nocturno_var.get() == "True"
 
             self.datos_empleados.update_employee_data(
                 nombre_original,
                 valor_hs_jornal,
                 hs_jornal,
-                ignorar_periodo_nocturno,
+                False,
                 tipo_empleado,
             )
             self.refresh_empleados_table()
@@ -1482,6 +1460,9 @@ class HorasExtrasGUI:
             messagebox.showerror("Sincronización", f"No se pudo exportar: {exc}")
 
     def _import_sync_package(self, import_path: str):
+        self.sync_status_var.set("Procesando sincronización... 10%")
+        self.root.update_idletasks()
+
         sheets = pd.read_excel(import_path, sheet_name=None)
 
         required_sheets = {
@@ -1494,6 +1475,9 @@ class HorasExtrasGUI:
         if missing:
             raise ValueError("Faltan hojas obligatorias en el archivo: " + ", ".join(missing))
 
+        self.sync_status_var.set("Validando columnas... 35%")
+        self.root.update_idletasks()
+
         sheets["Historico"] = self._ensure_sync_columns(
             sheets["Historico"],
             self.workflow.historico.REQUIRED_COLUMNS,
@@ -1505,8 +1489,14 @@ class HorasExtrasGUI:
             {"NOMBRE_Y_APELLIDO", "TIPO_EMPLEADO"},
         )
 
+        self.sync_status_var.set("Guardando datos locales... 70%")
+        self.root.update_idletasks()
+
         for sheet_name, local_path in required_sheets.items():
             sheets[sheet_name].to_excel(local_path, index=False)
+
+        self.sync_status_var.set("Sincronización finalizada... 100%")
+        self.root.update_idletasks()
 
     def import_sync_package(self):
         import_path = filedialog.askopenfilename(
